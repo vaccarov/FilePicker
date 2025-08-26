@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { NextFontWithVariable } from "next/dist/compiled/@next/font";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { Providers } from "./providers";
 
 const geistSans: NextFontWithVariable = Geist({
   variable: "--font-geist-sans",
@@ -22,7 +23,7 @@ export default function RootLayout({children}: Readonly<{children: React.ReactNo
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
