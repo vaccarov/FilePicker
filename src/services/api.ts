@@ -1,4 +1,4 @@
-import { mockResources } from '@/lib/mockData';
+import { mockKnowledgeBases, mockResources } from '@/lib/mockData';
 import { getEnvVar } from '@/lib/utils';
 import { AuthResponse, Connection, KnowledgeBase, Organization, PaginatedResponse, Resource } from '@/types';
 
@@ -73,11 +73,15 @@ export const getCurrentOrganization = async (token: string): Promise<Organizatio
 };
 
 export const listKnowledgeBases = async (token: string): Promise<KnowledgeBase[]> => {
-  const response: Response = await fetch(`${backendUrl}/knowledge_bases`, {
-    headers: { Authorization: `Bearer ${token}` },
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(mockKnowledgeBases), 500);
   });
-  if (!response.ok) { throw new Error('Failed to list knowledge bases'); }
-  return response.json();
+  // Original API call
+  // const response: Response = await fetch(`${backendUrl}/knowledge_bases`, {
+  //   headers: { Authorization: `Bearer ${token}` },
+  // });
+  // if (!response.ok) { throw new Error('Failed to list knowledge bases'); }
+  // return response.json();
 };
 
 export const createKnowledgeBase = async (token: string, connection_id: string, connection_source_ids: string[]): Promise<KnowledgeBase> => {
