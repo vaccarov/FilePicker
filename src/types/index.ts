@@ -1,8 +1,9 @@
-import { INDEXED, INDEXING, NOT_INDEXED, SORT_DIRECTION_ASC, SORT_DIRECTION_DESC, SORT_KEY_NAME, SORT_KEY_TYPE } from "@/lib/constants";
+import { DIRECTORY, FILE, INDEXED, INDEXING, NOT_INDEXED, SORT_DIRECTION_ASC, SORT_DIRECTION_DESC, SORT_KEY_NAME, SORT_KEY_TYPE } from "@/lib/constants";
 
 export type SortKey = typeof SORT_KEY_TYPE | typeof SORT_KEY_NAME;
 export type SortDirection = typeof SORT_DIRECTION_ASC | typeof SORT_DIRECTION_DESC;
 export type IndexStatus = typeof NOT_INDEXED | typeof INDEXED | typeof INDEXING;
+export type InodeType = typeof DIRECTORY | typeof FILE;
 
 export interface AuthResponse {
   access_token: string;
@@ -56,7 +57,7 @@ export interface Resource {
   inode_path: {
     path: string;
   };
-  inode_type: "directory" | "file";
+  inode_type: InodeType;
   mime_type?: string;
   parent_id?: string; // Added parent_id
   status?: IndexStatus;
