@@ -1,9 +1,10 @@
-import { DIRECTORY, FILE, INDEXED, INDEXING, NOT_INDEXED, SORT_DIRECTION_ASC, SORT_DIRECTION_DESC, SORT_KEY_NAME, SORT_KEY_TYPE } from "@/lib/constants";
+import { DIRECTORY, FILE, INDEXED, INDEXING, NOT_INDEXED, OP_DEINDEXING, OP_INDEXING, SORT_DIRECTION_ASC, SORT_DIRECTION_DESC, SORT_KEY_NAME, SORT_KEY_TYPE } from "@/lib/constants";
 
 export type SortKey = typeof SORT_KEY_TYPE | typeof SORT_KEY_NAME;
 export type SortDirection = typeof SORT_DIRECTION_ASC | typeof SORT_DIRECTION_DESC;
 export type IndexStatus = typeof NOT_INDEXED | typeof INDEXED | typeof INDEXING;
 export type InodeType = typeof DIRECTORY | typeof FILE;
+export type PendingOperation = typeof OP_INDEXING | typeof OP_DEINDEXING;
 
 export interface AuthResponse {
   access_token: string;

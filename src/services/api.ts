@@ -4,6 +4,30 @@ import { AuthResponse, Connection, KnowledgeBase, Organization, PaginatedRespons
 
 const backendUrl: string = getEnvVar('NEXT_PUBLIC_BACKEND_URL');
 
+const KB_RESOURCES_KEY = 'kb_resources';
+const getKbResourcesFromLocalStorage = (): Resource[] => {
+  if (typeof window === 'undefined') return [];
+  const storedResources = localStorage.getItem(KB_RESOURCES_KEY);
+  return storedResources ? JSON.parse(storedResources) : [];
+};
+
+const saveKbResourcesToLocalStorage = (resources: Resource[]): void => {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(KB_RESOURCES_KEY, JSON.stringify(resources));
+};
+
+export const addKbResourceToLocalStorage = (resource: Resource): void => {
+  const currentResources = getKbResourcesFromLocalStorage();
+  const updatedResources = [...currentResources, { ...resource }];
+  saveKbResourcesToLocalStorage(updatedResources);
+};
+
+export const removeKbResourceFromLocalStorage = (resourceId: string): void => {
+  const currentResources = getKbResourcesFromLocalStorage();
+  const updatedResources = currentResources.filter(r => r.resource_id !== resourceId);
+  saveKbResourcesToLocalStorage(updatedResources);
+};
+
 export const getAuthToken = async (password: string): Promise<string> => {
   const supabaseUrl: string = getEnvVar('NEXT_PUBLIC_SUPABASE_URL');
   const anonKey: string = getEnvVar('NEXT_PUBLIC_SUPABASE_ANON_KEY');
@@ -99,24 +123,54 @@ export const createKnowledgeBase = async (token: string, connection_id: string, 
   return response.json();
 };
 
-export const syncKnowledgeBase = async (token: string, kbId: string, orgId: string): Promise<void> => {
-  const response: Response = await fetch(`${backendUrl}/knowledge_bases/sync/trigger/${kbId}/${orgId}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (response.status !== 200) { // Sync endpoint returns 200 on success
-    throw new Error('Failed to trigger knowledge base sync');
-  }
-};
+// export const syncKnowledgeBase = async (token: string, kbId: string, orgId: string): Promise<void> => {
+  // const response: Response = await fetch(`${backendUrl}/knowledge_bases/sync/trigger/${kbId}/${orgId}`, {
+  //   headers: { Authorization: `Bearer ${token}` },
+  // });
+  // if (response.status !== 200) { // Sync endpoint returns 200 on success
+  //   throw new Error('Failed to trigger knowledge base sync');
+  // }
+// };
 
 export const listKnowledgeBaseResources = async (token: string, kbId: string): Promise<PaginatedResponse<Resource>> => {
+  
+  // Mock data for development using localStorage
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const data =  getKbResourcesFromLocalStorage();
+      console.log('Fetching KB resources from localStorage', data.length);
+      resolve({
+        data,
+        next_cursor: null,
+        current_cursor: null,
+      });
+    }, 500);
+  });
+
+  /* Original API call (commented out)
   const response: Response = await fetch(`${backendUrl}/knowledge_bases/${kbId}/resources/children`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!response.ok) { throw new Error('Failed to fetch knowledge base resources'); }
   return response.json();
+  */
 };
 
-export const deleteKnowledgeBaseResource = async (token: string, kbId: string, resourcePath: string): Promise<void> => {
+export const addKnowledgeBaseResource = async (token: string, resource: Resource): Promise<void> => {
+  console.log('Adding KB resources from localStorage');
+  setTimeout(() => addKbResourceToLocalStorage(resource), 2000);
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(), 200);
+  });
+};
+
+export const deleteKnowledgeBaseResource = async (token: string, kbId: string, resourcePath: string, resId: string): Promise<void> => {
+  console.log('Deleting KB resources from localStorage');
+  setTimeout(() => removeKbResourceFromLocalStorage(resId), 2000);
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(), 200);
+  });
+  /* Original API call (commented out)
   const url: URL = new URL(`${backendUrl}/knowledge_bases/${kbId}/resources`);
   url.searchParams.append('resource_path', resourcePath);
   const response: Response = await fetch(url.toString(), {
@@ -126,4 +180,5 @@ export const deleteKnowledgeBaseResource = async (token: string, kbId: string, r
   if (response.status !== 204) { // Delete returns 204 on success
     throw new Error('Failed to delete resource from knowledge base');
   }
+  */
 };

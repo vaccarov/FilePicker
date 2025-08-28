@@ -5,6 +5,9 @@ export const SORT_DIRECTION_DESC: string = "desc";
 export const SORT_KEY_TYPE: string = "type";
 export const SORT_KEY_NAME: string = "name";
 
+export const OP_INDEXING: string = "index";
+export const OP_DEINDEXING: string = "deindex";
+
 export const NOT_INDEXED: string = "isNotIndexed";
 export const INDEXED: string = "isIndexed";
 export const INDEXING: string = "isIndexing";

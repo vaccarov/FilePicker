@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Toggle } from "@/components/ui/toggle";
 import { useFileExplorer } from "@/hooks/useFileExplorer";
-import { COLUMN_ID_INODE_TYPE, COLUMN_ID_NAME, COLUMN_ID_STATUS, DIRECTORY, INDEXED, INDEXING } from "@/lib/constants";
+import { COLUMN_ID_INODE_TYPE, COLUMN_ID_NAME, COLUMN_ID_STATUS, DIRECTORY, INDEXED, INDEXING, NOT_INDEXED } from "@/lib/constants";
 import { Resource } from "@/types";
 import { ColumnDef, getCoreRowModel, getFilteredRowModel, getSortedRowModel, Row, useReactTable } from "@tanstack/react-table";
 import { Fragment, JSX, useMemo } from "react";
 import { FileExplorerHeader } from "./FileExplorerHeader";
 import { ResourceTable } from "./ResourceTable";
+import { Skeleton } from "./ui/skeleton";
 
 export function FileExplorer(): JSX.Element {
   const {
@@ -50,7 +51,7 @@ export function FileExplorer(): JSX.Element {
           onPressedChange={(): void => handleResourceSelect(row.original)}
           disabled={row.original.status === INDEXING}
           aria-label="Toggle index status">
-          {row.original.status === INDEXING ? '⏳' : row.original.status === INDEXED ? '✔️' : '❌'}
+          {row.original.status === INDEXING ? '⏳' : row.original.status === INDEXED ? '✔️' : row.original.status === NOT_INDEXED ? '❌' : <Skeleton className="h-5 w-full" />}
         </Toggle>
       ),
     },

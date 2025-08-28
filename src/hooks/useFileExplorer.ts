@@ -1,20 +1,19 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useQuery, useMutation, useQueryClient, UseQueryResult, UseMutationResult } from "@tanstack/react-query";
-import { SortingState, ColumnFiltersState } from "@tanstack/react-table";
-import { getCurrentOrganization, listConnections, listKnowledgeBases, listKnowledgeBaseResources, listResources, } from "@/services/api";
-import { Organization, Connection, KnowledgeBase, Resource } from "@/types";
-import { COLUMN_ID_INODE_TYPE, INDEXED, INDEXING, NOT_INDEXED } from "@/lib/constants";
-import { Dispatch, SetStateAction } from "react";
+import { COLUMN_ID_INODE_TYPE, DIRECTORY, FILE, INDEXED, INDEXING, NOT_INDEXED, OP_DEINDEXING, OP_INDEXING } from "@/lib/constants";
+import { addKnowledgeBaseResource, deleteKnowledgeBaseResource, getCurrentOrganization, listConnections, listKnowledgeBaseResources, listKnowledgeBases, listResources } from "@/services/api";
+import { Connection, KnowledgeBase, Organization, PendingOperation, Resource } from "@/types";
+import { useMutation, UseMutationResult, useQuery, useQueryClient, UseQueryResult } from "@tanstack/react-query";
+import { ColumnFiltersState, SortingState } from "@tanstack/react-table";
+import { Dispatch, SetStateAction, useCallback, useEffect, useMemo, useState } from "react";
 
 export function useFileExplorer() {
   const { token, logout }: { token: string | null, logout: () => void } = useAuth();
   const queryClient = useQueryClient();
   const [selectedConnectionId, setSelectedConnectionId]: [string, Dispatch<SetStateAction<string>>] = useState<string>('');
   const [knowledgeBaseId, setKnowledgeBaseId]: [string, Dispatch<SetStateAction<string>>] = useState<string>('');
-  const [pendingResources, setPendingResources]: [Set<string>, Dispatch<SetStateAction<Set<string>>>] = useState<Set<string>>(new Set());
+  const [pendingResources, setPendingResources] = useState<Map<string, PendingOperation>>(new Map());
   const [currentPath, setCurrentPath]: [string | undefined, Dispatch<SetStateAction<string | undefined>>] = useState<string | undefined>(undefined);
   const [pathHistory, setPathHistory]: [Resource[], Dispatch<SetStateAction<Resource[]>>] = useState<Resource[]>([]);
   const [page, setPage]: [number, Dispatch<SetStateAction<number>>] = useState<number>(0);
@@ -68,66 +67,62 @@ export function useFileExplorer() {
     refetchInterval: isPollingEnabled ? 3000 : false,
   });
 
-  useEffect((): void => {
-    console.log('kbResourcesData', kbResourcesQuery.data);
+  useEffect(() => {
+    if (pendingResources.size > 0) {
+      queryClient.invalidateQueries({ queryKey: ['kbResources'] });
+    }
+  }, [pendingResources, queryClient]);
+
+  const indexMutation: UseMutationResult<void, Error, Resource, unknown> = useMutation({
+    mutationFn: async (resource: Resource): Promise<void> => {
+      if (!token || !organizationQuery.data || !knowledgeBaseId) throw new Error('Required info missing.');
+      await addKnowledgeBaseResource(token, resource);
+    },
+    onSuccess: (_, variables: Resource) => {
+      setPendingResources(prev => new Map(prev).set(variables.resource_id, OP_INDEXING));
+    },
+  });
+
+  const deindexMutation: UseMutationResult<void, Error, Resource, unknown> = useMutation({
+    mutationFn: async (resource: Resource): Promise<void> => {
+      if (!token || !knowledgeBaseId) throw new Error('Required info missing.');
+      await deleteKnowledgeBaseResource(token, knowledgeBaseId, resource.inode_path.path, resource.resource_id);
+    },
+    onSuccess: (_, variables: Resource) => {
+      setPendingResources(prev => new Map(prev).set(variables.resource_id, OP_DEINDEXING));
+    },
+  });
+
+  useEffect(() => {
+    if (kbResourcesQuery.data) {
+      const indexedResources: Set<string> = new Set(kbResourcesQuery.data.data.map(r => r.resource_id));
+      setPendingResources((prev: Map<string, string>) => {
+        const newPending: Map<string, string> = new Map(prev);
+        let changed: boolean = false;
+        for (const [id, action] of prev.entries()) {
+          if (action === OP_INDEXING && indexedResources.has(id)) {
+            newPending.delete(id);
+            changed = true;
+          } else if (action === OP_DEINDEXING && !indexedResources.has(id)) {
+            newPending.delete(id);
+            changed = true;
+          }
+        }
+        return changed ? newPending : prev;
+      });
+    }
   }, [kbResourcesQuery.data]);
-
-  const indexMutation: UseMutationResult<Resource, Error, Resource, unknown> = useMutation<Resource, Error, Resource, unknown>({
-    mutationFn: async (resource: Resource): Promise<Resource> => {
-      queryClient.setQueryData(['resources', selectedConnectionId, currentPath], (oldData: { data: Resource[] } | undefined) => {
-        if (!oldData) return oldData;
-        return {
-          ...oldData,
-          data: oldData.data.map((r: Resource) => r.resource_id === resource.resource_id ? { ...r, status: INDEXING } : r)
-        };
-      });
-      await new Promise((resolve: (value: unknown) => void) => setTimeout(resolve, 5000));
-      return resource;
-    },
-    onSuccess: (resource: Resource): void => {
-      queryClient.setQueryData(['resources', selectedConnectionId, currentPath], (oldData: { data: Resource[] } | undefined) => {
-        if (!oldData) return oldData;
-        return {
-          ...oldData,
-          data: oldData.data.map((r: Resource) => r.resource_id === resource.resource_id ? { ...r, status: INDEXED } : r)
-        };
-      });
-    },
-  });
-
-  const deindexMutation: UseMutationResult<Resource, Error, Resource, unknown> = useMutation<Resource, Error, Resource, unknown>({
-    mutationFn: async (resource: Resource): Promise<Resource> => {
-      queryClient.setQueryData(['resources', selectedConnectionId, currentPath], (oldData: { data: Resource[] } | undefined) => {
-        if (!oldData) return oldData;
-        return {
-          ...oldData,
-          data: oldData.data.map((r: Resource) => r.resource_id === resource.resource_id ? { ...r, status: INDEXING } : r)
-        };
-      });
-      await new Promise((resolve: (value: unknown) => void) => setTimeout(resolve, 5000));
-      return resource;
-    },
-    onSuccess: (resource: Resource): void => {
-      queryClient.setQueryData(['resources', selectedConnectionId, currentPath], (oldData: { data: Resource[] } | undefined) => {
-        if (!oldData) return oldData;
-        return {
-          ...oldData,
-          data: oldData.data.map((r: Resource) => r.resource_id === resource.resource_id ? { ...r, status: NOT_INDEXED } : r)
-        };
-      });
-    },
-  });
 
   const processedResource: Resource[] = useMemo((): Resource[] => {
     if (!resourcesQuery.data) return [];
-    const indexedMap: Map<string, string> = new Map<string, string>();
-    kbResourcesQuery.data?.data.forEach((res: Resource) => indexedMap.set(res.resource_id, res.status || INDEXED));
+    const kbStatusMap: Map<string, string> = new Map<string, string>();
+    kbResourcesQuery.data?.data.forEach((res: Resource) => kbStatusMap.set(res.resource_id, INDEXED));
 
     return resourcesQuery.data?.data.map((res: Resource) => ({
       ...res,
-      status: indexedMap.get(res.resource_id) || res.status || NOT_INDEXED,
+      status: pendingResources.has(res.resource_id) ? INDEXING : (kbStatusMap.get(res.resource_id) || NOT_INDEXED),
     }));
-  }, [resourcesQuery.data, kbResourcesQuery.data]);
+  }, [resourcesQuery.data, kbResourcesQuery.data, pendingResources]);
 
   const indexingResourcesCount: number = useMemo(() => {
     return processedResource.filter(r => r.status === INDEXING).length;
@@ -135,12 +130,32 @@ export function useFileExplorer() {
 
   const handleResourceSelect = useCallback((resource: Resource): void => {
     if (resource.status === INDEXING) return;
-    if (resource.status === INDEXED) {
-      deindexMutation.mutate(resource);
-    } else {
-      indexMutation.mutate(resource);
+
+    const traverseAndMutate = (res: Resource, action: PendingOperation) => {
+      if (action === OP_INDEXING && res.status === NOT_INDEXED) {
+        indexMutation.mutate(res);
+      } else if (action === OP_DEINDEXING && res.status === INDEXED) {
+        deindexMutation.mutate(res);
+      }
+      resourcesQuery.data?.data
+        .filter((child: Resource) => child.parent_id === res.resource_id)
+        .forEach((child: Resource) => traverseAndMutate(child, action));
+    };
+
+    if (resource.inode_type === DIRECTORY) {
+      if (resource.status === INDEXED) {
+        traverseAndMutate(resource, OP_DEINDEXING);
+      } else {
+        traverseAndMutate(resource, OP_INDEXING);
+      }
+    } else if (resource.inode_type === FILE) {
+      if (resource.status === INDEXED) {
+        deindexMutation.mutate(resource);
+      } else {
+        indexMutation.mutate(resource);
+      }
     }
-  }, [indexMutation, deindexMutation]);
+  }, [indexMutation, deindexMutation, resourcesQuery.data?.data]);
 
   const handleFolderClick = useCallback((resource: Resource): void => {
     setPathHistory((prevPathHistory: Resource[]): Resource[] => [...prevPathHistory, resource]);
