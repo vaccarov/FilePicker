@@ -6,12 +6,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { COLUMN_ID_INODE_TYPE, COLUMN_ID_STATUS, DIRECTORY, FILE, INDEXED, INDEXING, NOT_INDEXED } from "@/lib/constants";
 import { Resource } from "@/types";
-import { Column, flexRender, Header, HeaderGroup, Table as TanstackTable } from "@tanstack/react-table";
+import { Column, ColumnDef, flexRender, Header, HeaderGroup, Table as TanstackTable } from "@tanstack/react-table";
 import { Fragment, JSX } from "react";
 
 interface ResourceTableProps {
   table: TanstackTable<Resource>;
-  columns: any[];
+  columns: ColumnDef<Resource>[];
   isLoadingResources: boolean;
   resourcesError: Error | null;
   handleFolderClick: (resource: Resource) => void;
@@ -125,7 +125,7 @@ export function ResourceTable({ table, columns, isLoadingResources, resourcesErr
           table.getRowModel().rows.map(row => (
             <TableRow
               key={row.id}
-              onClick={(): void => {row.original.inode_type === DIRECTORY && handleFolderClick(row.original)} }
+              onClick={(): void => { if (row.original.inode_type === DIRECTORY) { handleFolderClick(row.original); } }}
               className="cursor-pointer hover:bg-gray-50">
               {row.getVisibleCells().map(cell => (
                 <TableCell key={cell.id}>

@@ -54,7 +54,7 @@ export const listConnections = async (token: string): Promise<Connection[]> => {
   return response.json();
 };
 
-export const listResources = async (token: string, connectionId: string, parentId?: string, searchTerm?: string, limit: number = 20, offset: number = 0): Promise<PaginatedResponse<Resource>> => {
+export const listResources = async (parentId?: string, searchTerm?: string, limit: number = 20, offset: number = 0): Promise<PaginatedResponse<Resource>> => {
   // Mock data for development
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -101,7 +101,7 @@ export const getCurrentOrganization = async (token: string): Promise<Organizatio
   return response.json();
 };
 
-export const listKnowledgeBases = async (token: string): Promise<KnowledgeBase[]> => {
+export const listKnowledgeBases = async (): Promise<KnowledgeBase[]> => {
   return new Promise((resolve) => {
     setTimeout(() => resolve(mockKnowledgeBases), 500);
   });
@@ -137,8 +137,7 @@ export const createKnowledgeBase = async (token: string, connection_id: string, 
   // }
 // };
 
-export const listKnowledgeBaseResources = async (token: string, kbId: string): Promise<PaginatedResponse<Resource>> => {
-  
+export const listKnowledgeBaseResources = async (): Promise<PaginatedResponse<Resource>> => {
   // Mock data for development using localStorage
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -161,7 +160,7 @@ export const listKnowledgeBaseResources = async (token: string, kbId: string): P
   */
 };
 
-export const addKnowledgeBaseResource = async (token: string, resource: Resource): Promise<void> => {
+export const addKnowledgeBaseResource = async (_token: string, resource: Resource): Promise<void> => {
   console.log('Adding KB resources from localStorage');
   setTimeout(() => addKbResourceToLocalStorage(resource), 2000);
   return new Promise((resolve) => {
@@ -169,7 +168,7 @@ export const addKnowledgeBaseResource = async (token: string, resource: Resource
   });
 };
 
-export const deleteKnowledgeBaseResource = async (token: string, kbId: string, resourcePath: string, resId: string): Promise<void> => {
+export const deleteKnowledgeBaseResource = async (resId: string): Promise<void> => {
   console.log('Deleting KB resources from localStorage');
   setTimeout(() => removeKbResourceFromLocalStorage(resId), 2000);
   return new Promise((resolve) => {

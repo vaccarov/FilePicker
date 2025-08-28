@@ -21,4 +21,4 @@
 4. ~~Use Tanstack Table for sortering/filtering/searching~~
 5. Improve icons instead of emojis
 6. ~~Add information message on sync~~
-7. Lint
+7. ~~Lint~~

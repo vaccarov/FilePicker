@@ -1,7 +1,8 @@
 'use client';
 
 import { useAuth } from "@/context/AuthContext";
-import { COLUMN_ID_INODE_TYPE, DIRECTORY, FILE, INDEXED, INDEXING, NOT_INDEXED, OP_DEINDEXING, OP_INDEXING, QUERY_KEY_ORGANIZATION, QUERY_KEY_CONNECTIONS, QUERY_KEY_KNOWLEDGE_BASES, QUERY_KEY_RESOURCES, QUERY_KEY_KB_RESOURCES } from "@/lib/constants";
+import { COLUMN_ID_INODE_TYPE, DIRECTORY, FILE, INDEXED, INDEXING, NOT_INDEXED, OP_DEINDEXING, OP_INDEXING, QUERY_KEY_CONNECTIONS, QUERY_KEY_KB_RESOURCES, QUERY_KEY_KNOWLEDGE_BASES, QUERY_KEY_ORGANIZATION, QUERY_KEY_RESOURCES } from "@/lib/constants";
+import { mockResources } from "@/lib/mockData";
 import { addKnowledgeBaseResource, deleteKnowledgeBaseResource, getCurrentOrganization, listConnections, listKnowledgeBaseResources, listKnowledgeBases, listResources } from "@/services/api";
 import { Connection, KnowledgeBase, Organization, PendingOperation, Resource } from "@/types";
 import { useMutation, UseMutationResult, useQuery, useQueryClient, UseQueryResult } from "@tanstack/react-query";
@@ -44,7 +45,7 @@ export function useFileExplorer() {
 
   const kbsQuery: UseQueryResult<KnowledgeBase[], Error> = useQuery<KnowledgeBase[], Error>({
     queryKey: [QUERY_KEY_KNOWLEDGE_BASES],
-    queryFn: () => listKnowledgeBases(token!),
+    queryFn: () => listKnowledgeBases(),
     enabled: !!token
   });
 
@@ -56,14 +57,14 @@ export function useFileExplorer() {
 
   const resourcesQuery: UseQueryResult<{ data: Resource[], next_cursor: string | null }, Error> = useQuery({
     queryKey: [QUERY_KEY_RESOURCES, selectedConnectionId, currentPath, searchTerm],
-    queryFn: () => listResources(token!, selectedConnectionId!, currentPath, searchTerm),
+    queryFn: () => listResources(currentPath, searchTerm),
     enabled: !!selectedConnectionId,
   });
 
   const isPollingEnabled: boolean = pendingResources.size > 0;
   const kbResourcesQuery: UseQueryResult<{ data: Resource[] }, Error> = useQuery({
     queryKey: [QUERY_KEY_KB_RESOURCES, knowledgeBaseId],
-    queryFn: () => listKnowledgeBaseResources(token!, knowledgeBaseId!),
+    queryFn: () => listKnowledgeBaseResources(),
     enabled: !!knowledgeBaseId,
     refetchInterval: isPollingEnabled ? 3000 : false,
   });
@@ -87,7 +88,7 @@ export function useFileExplorer() {
   const deindexMutation: UseMutationResult<void, Error, Resource, unknown> = useMutation({
     mutationFn: async (resource: Resource): Promise<void> => {
       if (!token || !knowledgeBaseId) throw new Error('Required info missing.');
-      await deleteKnowledgeBaseResource(token, knowledgeBaseId, resource.inode_path.path, resource.resource_id);
+      await deleteKnowledgeBaseResource(resource.resource_id);
     },
     onSuccess: (_, variables: Resource) => {
       setPendingResources(prev => new Map(prev).set(variables.resource_id, OP_DEINDEXING));
@@ -134,7 +135,7 @@ export function useFileExplorer() {
       } else if (action === OP_DEINDEXING && res.status === INDEXED) {
         deindexMutation.mutate(res);
       }
-      resourcesQuery.data?.data
+      mockResources
         .filter((child: Resource) => child.parent_id === res.resource_id)
         .forEach((child: Resource) => traverseAndMutate(child, action));
     };
@@ -152,7 +153,7 @@ export function useFileExplorer() {
         indexMutation.mutate(resource);
       }
     }
-  }, [indexMutation, deindexMutation, resourcesQuery.data?.data]);
+  }, [indexMutation, deindexMutation]);
 
   const handleFolderClick = useCallback((resource: Resource): void => {
     setPathHistory((prevPathHistory: Resource[]): Resource[] => [...prevPathHistory, resource]);

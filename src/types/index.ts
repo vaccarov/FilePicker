@@ -101,7 +101,7 @@ export interface KnowledgeBase {
   created_at: string;
   updated_at: string;
   connection_source_ids: string[];
-  website_sources: any[];
+  website_sources: string[];
   connection_provider_type: string | null;
   is_empty: boolean;
   total_size: number;
