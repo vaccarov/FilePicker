@@ -141,10 +141,8 @@ export const listKnowledgeBaseResources = async (): Promise<PaginatedResponse<Re
   // Mock data for development using localStorage
   return new Promise((resolve) => {
     setTimeout(() => {
-      const data =  getKbResourcesFromLocalStorage();
-      console.log('Fetching KB resources from localStorage', data.length);
       resolve({
-        data,
+        data: getKbResourcesFromLocalStorage(),
         next_cursor: null,
         current_cursor: null,
       });
@@ -161,7 +159,6 @@ export const listKnowledgeBaseResources = async (): Promise<PaginatedResponse<Re
 };
 
 export const addKnowledgeBaseResource = async (_token: string, resource: Resource): Promise<void> => {
-  console.log('Adding KB resources from localStorage');
   setTimeout(() => addKbResourceToLocalStorage(resource), 2000);
   return new Promise((resolve) => {
     setTimeout(() => resolve(), 200);
@@ -169,7 +166,6 @@ export const addKnowledgeBaseResource = async (_token: string, resource: Resourc
 };
 
 export const deleteKnowledgeBaseResource = async (resId: string): Promise<void> => {
-  console.log('Deleting KB resources from localStorage');
   setTimeout(() => removeKbResourceFromLocalStorage(resId), 2000);
   return new Promise((resolve) => {
     setTimeout(() => resolve(), 200);

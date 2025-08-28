@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { COLUMN_ID_INODE_TYPE, DIRECTORY, FILE, INDEXED, INDEXING, NOT_INDEXED, OP_DEINDEXING, OP_INDEXING, QUERY_KEY_CONNECTIONS, QUERY_KEY_KB_RESOURCES, QUERY_KEY_KNOWLEDGE_BASES, QUERY_KEY_ORGANIZATION, QUERY_KEY_RESOURCES } from "@/lib/constants";
 import { mockResources } from "@/lib/mockData";
 import { addKnowledgeBaseResource, deleteKnowledgeBaseResource, getCurrentOrganization, listConnections, listKnowledgeBaseResources, listKnowledgeBases, listResources } from "@/services/api";
-import { Connection, KnowledgeBase, Organization, PendingOperation, Resource } from "@/types";
+import { Connection, IndexStatus, KnowledgeBase, Organization, PendingOperation, Resource } from "@/types";
 import { useMutation, UseMutationResult, useQuery, useQueryClient, UseQueryResult } from "@tanstack/react-query";
 import { ColumnFiltersState, SortingState } from "@tanstack/react-table";
 import { Dispatch, SetStateAction, useCallback, useEffect, useMemo, useState } from "react";
@@ -130,9 +130,12 @@ export function useFileExplorer() {
     if (resource.status === INDEXING) return;
 
     const traverseAndMutate = (res: Resource, action: PendingOperation) => {
-      if (action === OP_INDEXING && res.status === NOT_INDEXED) {
+      const kbStatusMap: Map<string, string> = new Map<string, string>();
+      kbResourcesQuery.data?.data.forEach((kbRes: Resource) => kbStatusMap.set(kbRes.resource_id, INDEXED));
+      const currentStatus: IndexStatus = pendingResources.has(res.resource_id) ? INDEXING : (kbStatusMap.get(res.resource_id) || NOT_INDEXED);
+      if (action === OP_INDEXING && currentStatus === NOT_INDEXED) {
         indexMutation.mutate(res);
-      } else if (action === OP_DEINDEXING && res.status === INDEXED) {
+      } else if (action === OP_DEINDEXING && currentStatus === INDEXED) {
         deindexMutation.mutate(res);
       }
       mockResources
@@ -153,7 +156,7 @@ export function useFileExplorer() {
         indexMutation.mutate(resource);
       }
     }
-  }, [indexMutation, deindexMutation]);
+  }, [indexMutation, deindexMutation, pendingResources, kbResourcesQuery.data]);
 
   const handleFolderClick = useCallback((resource: Resource): void => {
     setPathHistory((prevPathHistory: Resource[]): Resource[] => [...prevPathHistory, resource]);
