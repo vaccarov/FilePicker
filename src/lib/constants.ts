@@ -18,3 +18,9 @@ export const COLUMN_ID_NAME: string = 'name';
 
 export const FILE: string = "file";
 export const DIRECTORY: string = "directory";
+
+export const QUERY_KEY_ORGANIZATION: string = 'organization';
+export const QUERY_KEY_CONNECTIONS: string = 'connections';
+export const QUERY_KEY_KNOWLEDGE_BASES: string = 'knowledgeBases';
+export const QUERY_KEY_RESOURCES: string = 'resources';
+export const QUERY_KEY_KB_RESOURCES: string = 'kbResources';

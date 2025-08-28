@@ -9,7 +9,7 @@
 5. Handle folder indexation (recursive indexation)
 6. ~~Handle file indexation with Tanstack query~~
 7. ~~Add UI elements (error handling, skeleton…)~~
-8. Add bonus points (~~sorting~~/~~filtering~~/searching)
+8. ~~Add bonus points (sorting/filtering/searching)~~
 9. Fill readme
 10. Upload project’s video screen on Vercel
 

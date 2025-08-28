@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuth } from "@/context/AuthContext";
-import { COLUMN_ID_INODE_TYPE, DIRECTORY, FILE, INDEXED, INDEXING, NOT_INDEXED, OP_DEINDEXING, OP_INDEXING } from "@/lib/constants";
+import { COLUMN_ID_INODE_TYPE, DIRECTORY, FILE, INDEXED, INDEXING, NOT_INDEXED, OP_DEINDEXING, OP_INDEXING, QUERY_KEY_ORGANIZATION, QUERY_KEY_CONNECTIONS, QUERY_KEY_KNOWLEDGE_BASES, QUERY_KEY_RESOURCES, QUERY_KEY_KB_RESOURCES } from "@/lib/constants";
 import { addKnowledgeBaseResource, deleteKnowledgeBaseResource, getCurrentOrganization, listConnections, listKnowledgeBaseResources, listKnowledgeBases, listResources } from "@/services/api";
 import { Connection, KnowledgeBase, Organization, PendingOperation, Resource } from "@/types";
 import { useMutation, UseMutationResult, useQuery, useQueryClient, UseQueryResult } from "@tanstack/react-query";
@@ -22,13 +22,13 @@ export function useFileExplorer() {
   const [columnFilters, setColumnFilters]: [ColumnFiltersState, Dispatch<SetStateAction<ColumnFiltersState>>] = useState<ColumnFiltersState>([]);
 
   const organizationQuery: UseQueryResult<Organization, Error> = useQuery<Organization, Error>({
-    queryKey: ['organization'],
+    queryKey: [QUERY_KEY_ORGANIZATION],
     queryFn: () => getCurrentOrganization(token!),
     enabled: !!token
   });
 
   const connectionsQuery: UseQueryResult<Connection[], Error> = useQuery<Connection[], Error>({
-    queryKey: ['connections'],
+    queryKey: [QUERY_KEY_CONNECTIONS],
     queryFn: () => listConnections(token!),
     enabled: !!token,
   });
@@ -43,7 +43,7 @@ export function useFileExplorer() {
   }, [connectionsQuery.data, selectedConnectionId]);
 
   const kbsQuery: UseQueryResult<KnowledgeBase[], Error> = useQuery<KnowledgeBase[], Error>({
-    queryKey: ['knowledgeBases'],
+    queryKey: [QUERY_KEY_KNOWLEDGE_BASES],
     queryFn: () => listKnowledgeBases(token!),
     enabled: !!token
   });
@@ -55,14 +55,14 @@ export function useFileExplorer() {
   }, [kbsQuery.data, knowledgeBaseId]);
 
   const resourcesQuery: UseQueryResult<{ data: Resource[], next_cursor: string | null }, Error> = useQuery({
-    queryKey: ['resources', selectedConnectionId, currentPath, searchTerm],
+    queryKey: [QUERY_KEY_RESOURCES, selectedConnectionId, currentPath, searchTerm],
     queryFn: () => listResources(token!, selectedConnectionId!, currentPath, searchTerm),
     enabled: !!selectedConnectionId,
   });
 
   const isPollingEnabled: boolean = pendingResources.size > 0;
   const kbResourcesQuery: UseQueryResult<{ data: Resource[] }, Error> = useQuery({
-    queryKey: ['kbResources', knowledgeBaseId],
+    queryKey: [QUERY_KEY_KB_RESOURCES, knowledgeBaseId],
     queryFn: () => listKnowledgeBaseResources(token!, knowledgeBaseId!),
     enabled: !!knowledgeBaseId,
     refetchInterval: isPollingEnabled ? 3000 : false,
@@ -70,7 +70,7 @@ export function useFileExplorer() {
 
   useEffect(() => {
     if (pendingResources.size > 0) {
-      queryClient.invalidateQueries({ queryKey: ['kbResources'] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY_KB_RESOURCES] });
     }
   }, [pendingResources, queryClient]);
 
