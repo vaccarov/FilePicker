@@ -64,7 +64,7 @@ function Filter({ column }: { column: Column<Resource, unknown> }): JSX.Element 
       type="text"
       value={(columnFilterValue ?? '') as string}
       onChange={(e: React.ChangeEvent<HTMLInputElement>): void => column.setFilterValue(e.target.value)}
-      placeholder={`Search...`}
+      placeholder={`Search name...`}
       className="w-full border shadow rounded"
       onClick={(e: React.MouseEvent<HTMLInputElement>): void => e.stopPropagation()}
     />

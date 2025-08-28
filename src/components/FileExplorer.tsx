@@ -3,12 +3,13 @@
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator, } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/toggle";
 import { useFileExplorer } from "@/hooks/useFileExplorer";
 import { COLUMN_ID_INODE_TYPE, COLUMN_ID_NAME, COLUMN_ID_STATUS, DIRECTORY, INDEXED, INDEXING, NOT_INDEXED } from "@/lib/constants";
 import { Resource } from "@/types";
 import { ColumnDef, getCoreRowModel, getFilteredRowModel, getSortedRowModel, Row, useReactTable } from "@tanstack/react-table";
-import { Fragment, JSX, useMemo } from "react";
+import { Fragment, JSX, useEffect, useMemo } from "react";
 import { FileExplorerHeader } from "./FileExplorerHeader";
 import { ResourceTable } from "./ResourceTable";
 import { Skeleton } from "./ui/skeleton";
@@ -21,6 +22,7 @@ export function FileExplorer(): JSX.Element {
     knowledgeBaseId,
     setKnowledgeBaseId,
     pathHistory,
+    setPathHistory,
     page,
     setPage,
     connectionsQuery,
@@ -34,7 +36,11 @@ export function FileExplorer(): JSX.Element {
     handleResourceSelect,
     handleFolderClick,
     handleBreadcrumbClick,
-    indexingResourcesCount
+    pendingResources,
+    searchTerm,
+    setSearchTerm,
+    setCurrentPath,
+    currentPath
   } = useFileExplorer();
 
   const columns: ColumnDef<Resource>[] = useMemo((): ColumnDef<Resource>[] => [
@@ -90,6 +96,19 @@ export function FileExplorer(): JSX.Element {
     getFilteredRowModel: getFilteredRowModel(),
   });
 
+  useEffect(() => {
+    if (searchTerm) {
+      setPathHistory([]);
+      setCurrentPath(undefined);
+    }
+  }, [searchTerm, setPathHistory, setCurrentPath]);
+
+  useEffect(() => {
+    if (currentPath !== undefined && searchTerm !== '') {
+      setSearchTerm('');
+    }
+  }, [currentPath, searchTerm, setSearchTerm]);
+
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
@@ -109,6 +128,11 @@ export function FileExplorer(): JSX.Element {
           kbsQuery={kbsQuery}
           knowledgeBaseId={knowledgeBaseId}
           setKnowledgeBaseId={setKnowledgeBaseId}
+        />
+        <Input
+          placeholder="Search all resources..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
         />
         <Breadcrumb>
           <BreadcrumbList>
@@ -148,9 +172,9 @@ export function FileExplorer(): JSX.Element {
             ➡️
           </Button>
         </div>
-        {indexingResourcesCount > 0 && (
+        {pendingResources.size > 0 && (
           <div className="text-sm text-gray-500 mb-1 grow text-right">
-            {indexingResourcesCount} resource(s) syncing...
+            {pendingResources.size} resource(s) syncing...
           </div>
         )}
       </CardContent>

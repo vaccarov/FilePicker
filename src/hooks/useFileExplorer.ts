@@ -14,6 +14,7 @@ export function useFileExplorer() {
   const [selectedConnectionId, setSelectedConnectionId]: [string, Dispatch<SetStateAction<string>>] = useState<string>('');
   const [knowledgeBaseId, setKnowledgeBaseId]: [string, Dispatch<SetStateAction<string>>] = useState<string>('');
   const [pendingResources, setPendingResources] = useState<Map<string, PendingOperation>>(new Map());
+  const [searchTerm, setSearchTerm]: [string, Dispatch<SetStateAction<string>>] = useState<string>('');
   const [currentPath, setCurrentPath]: [string | undefined, Dispatch<SetStateAction<string | undefined>>] = useState<string | undefined>(undefined);
   const [pathHistory, setPathHistory]: [Resource[], Dispatch<SetStateAction<Resource[]>>] = useState<Resource[]>([]);
   const [page, setPage]: [number, Dispatch<SetStateAction<number>>] = useState<number>(0);
@@ -54,8 +55,8 @@ export function useFileExplorer() {
   }, [kbsQuery.data, knowledgeBaseId]);
 
   const resourcesQuery: UseQueryResult<{ data: Resource[], next_cursor: string | null }, Error> = useQuery({
-    queryKey: ['resources', selectedConnectionId, currentPath],
-    queryFn: () => listResources(token!, selectedConnectionId!, currentPath),
+    queryKey: ['resources', selectedConnectionId, currentPath, searchTerm],
+    queryFn: () => listResources(token!, selectedConnectionId!, currentPath, searchTerm),
     enabled: !!selectedConnectionId,
   });
 
@@ -124,10 +125,6 @@ export function useFileExplorer() {
     }));
   }, [resourcesQuery.data, kbResourcesQuery.data, pendingResources]);
 
-  const indexingResourcesCount: number = useMemo(() => {
-    return processedResource.filter(r => r.status === INDEXING).length;
-  }, [processedResource]);
-
   const handleResourceSelect = useCallback((resource: Resource): void => {
     if (resource.status === INDEXING) return;
 
@@ -188,6 +185,11 @@ export function useFileExplorer() {
     handleResourceSelect,
     handleFolderClick,
     handleBreadcrumbClick,
-    indexingResourcesCount
+    pendingResources,
+    searchTerm,
+    setSearchTerm,
+    setPathHistory,
+    setCurrentPath,
+    currentPath
   };
 }

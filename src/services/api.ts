@@ -54,16 +54,21 @@ export const listConnections = async (token: string): Promise<Connection[]> => {
   return response.json();
 };
 
-export const listResources = async (token: string, connectionId: string, parentId?: string, limit: number = 20, offset: number = 0): Promise<PaginatedResponse<Resource>> => {
+export const listResources = async (token: string, connectionId: string, parentId?: string, searchTerm?: string, limit: number = 20, offset: number = 0): Promise<PaginatedResponse<Resource>> => {
   // Mock data for development
   return new Promise((resolve) => {
     setTimeout(() => {
       let filteredResources: Resource[] = mockResources;
-      if (parentId) {
-        // Filter resources by parentId
+
+      if (searchTerm) {
+        // Global search: filter by searchTerm across all resources
+        filteredResources = mockResources.filter((resource: Resource) =>
+          resource.inode_path.path.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      } else if (parentId) {
         filteredResources = mockResources.filter((resource: Resource) => resource.parent_id === parentId);
       } else {
-        // If no parentId, show root level resources (those without a parent_id)
+        // If no parentId and no searchTerm, show root level resources (those without a parent_id)
         filteredResources = mockResources.filter((resource: Resource) => !resource.parent_id);
       }
 
