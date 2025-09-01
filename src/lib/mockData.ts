@@ -1,5 +1,34 @@
-import { KnowledgeBase, Resource } from '@/types';
+import { Connection, KnowledgeBase, Resource } from '@/types';
 import { DIRECTORY, FILE } from './constants';
+
+export const mockConnections: Connection[] = [
+  {
+    name: "Google Drive",
+    connection_id: "96891794-4313-42f1-9d98-237e526165b8",
+    user_id: "d0ce1828-ef26-4cf6-8d05-84e0406cc27d",
+    org_id: "0d582f36-52dd-403f-a38a-ccf4dfa06180",
+    share_with_org: false,
+    created_at: "2025-06-19T02:28:05.881189+00:00",
+    updated_at: "2025-08-26T22:28:26.399868+00:00",
+    connection_provider: "gdrive",
+    connection_provider_data: {
+      access_token: "ya29.A0AS3H6Nw2Z2Rd2MjST4F6voMyd--uHrtanb6EN_nX2SSgcpM2UpKHk6EY-PSqvH_XrW3W1h9JKcF7_Tki66wubinYtReXgAYeMPq06JG3WpD6Anx8QK_cm_31wu7AbMBCQKMeTL-ZZqbOKaqU8Eh5qMh85GojJIKxIYLHgewmJF9GCi5X-LXErwDldUfcfXtGzQlxAbgaCgYKASASARYSFQHGX2MiJwOd5q2zFls7hzORvJG26A0206",
+      refresh_token: "1//05g05sPyu2Il_CgYIARAAGAUSNwF-L9IrFxc7mqTFA_eU1Qt7gXXQgbYZ1LP_Xev7ZoxcV0sxnvCm0aCkUVjk2Mmtw-zLjB-gKV4",
+      scope: "https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email openid https://www.googleapis.com/auth/drive.file",
+      token_type: "Bearer",
+      can_be_knowledge_base: true
+    },
+    created_by: {
+      avatar_url: null,
+      full_name: null,
+      has_completed_onboarding: true,
+      last_signed_in: "2025-08-29 18:09:23.338452+00:00",
+      updated_at: "None",
+      id: "d0ce1828-ef26-4cf6-8d05-84e0406cc27d",
+      email: "stackaitest@gmail.com"
+    }
+  }
+];
 
 export const mockResources: Resource[] = [
   // Root level resources

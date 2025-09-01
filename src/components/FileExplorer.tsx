@@ -1,8 +1,8 @@
 'use client';
 
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator, } from "@/components/ui/breadcrumb";
-import { Button } from "@/components/ui/button";
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious, } from "@/components/ui/pagination";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/toggle";
 import { useFileExplorer } from "@/hooks/useFileExplorer";
@@ -14,11 +14,15 @@ import { FileExplorerHeader } from "./FileExplorerHeader";
 import { ResourceTable } from "./ResourceTable";
 import { Skeleton } from "./ui/skeleton";
 
-export function FileExplorer(): JSX.Element {
+export interface FileExplorerProps {
+  isOnlineMode: boolean;
+  token: string;
+}
+
+export function FileExplorer({ isOnlineMode, token }: FileExplorerProps): JSX.Element {
   const {
-    logout,
-    selectedConnectionId,
-    setSelectedConnectionId,
+    connectionId,
+    setConnectionId,
     knowledgeBaseId,
     setKnowledgeBaseId,
     pathHistory,
@@ -41,7 +45,7 @@ export function FileExplorer(): JSX.Element {
     setSearchTerm,
     setCurrentPath,
     currentPath
-  } = useFileExplorer();
+  } = useFileExplorer({ isOnlineMode, token });
 
   const columns: ColumnDef<Resource>[] = useMemo((): ColumnDef<Resource>[] => [
     {
@@ -114,17 +118,12 @@ export function FileExplorer(): JSX.Element {
       <CardHeader>
         <CardTitle>File Picker</CardTitle>
         <CardDescription>Select files and folders to index.</CardDescription>
-        <CardAction>
-          <Button onClick={logout} variant="outline">
-            Logout
-          </Button>
-        </CardAction>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <FileExplorerHeader
           connectionsQuery={connectionsQuery}
-          selectedConnectionId={selectedConnectionId}
-          setSelectedConnectionId={setSelectedConnectionId}
+          connectionId={connectionId}
+          setConnectionId={setConnectionId}
           kbsQuery={kbsQuery}
           knowledgeBaseId={knowledgeBaseId}
           setKnowledgeBaseId={setKnowledgeBaseId}
@@ -157,21 +156,29 @@ export function FileExplorer(): JSX.Element {
           isLoadingResources={resourcesQuery.isLoading || connectionsQuery.isLoading}
           resourcesError={resourcesQuery.error}
           handleFolderClick={handleFolderClick}/>
-        <div className="flex justify-between items-center mt-4">
-          <Button
-            onClick={(): void => setPage((prevPage: number): number => Math.max(0, prevPage - 1))}
-            disabled={page === 0}
-            variant="outline">
-            ⬅️
-          </Button>
-          <span>Page {page + 1}</span>
-          <Button
-            onClick={(): void => setPage((prevPage: number): number => prevPage + 1)}
-            disabled={!resourcesQuery.data?.next_cursor}
-            variant="outline">
-            ➡️
-          </Button>
-        </div>
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                onClick={(): void => setPage((prevPage: number): number => Math.max(0, prevPage - 1))}
+                aria-disabled={page === 0}
+                size='default'
+                className={page === 0 ? "pointer-events-none text-muted-foreground" : "cursor-pointer"}
+              />
+            </PaginationItem>
+            <PaginationItem>
+              <span className="p-2">{page + 1}</span>
+            </PaginationItem>
+            <PaginationItem>
+              <PaginationNext
+                onClick={(): void => setPage((prevPage: number): number => prevPage + 1)}
+                aria-disabled={!resourcesQuery.data?.next_cursor}
+                size='default'
+                className={!resourcesQuery.data?.next_cursor ? "pointer-events-none text-muted-foreground" : "cursor-pointer"}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
         {pendingResources.size > 0 && (
           <div className="text-sm text-gray-500 mb-1 grow text-right">
             {pendingResources.size} resource(s) syncing...

@@ -7,21 +7,21 @@ import { Dispatch, JSX, SetStateAction } from "react";
 
 interface FileExplorerHeaderProps {
   connectionsQuery: UseQueryResult<Connection[], Error>;
-  selectedConnectionId: string;
-  setSelectedConnectionId: Dispatch<SetStateAction<string>>;
+  connectionId: string;
+  setConnectionId: Dispatch<SetStateAction<string>>;
   kbsQuery: UseQueryResult<KnowledgeBase[], Error>;
   knowledgeBaseId: string;
   setKnowledgeBaseId: Dispatch<SetStateAction<string>>;
 }
 
-export function FileExplorerHeader({ connectionsQuery, selectedConnectionId, setSelectedConnectionId, kbsQuery, knowledgeBaseId, setKnowledgeBaseId, }: FileExplorerHeaderProps): JSX.Element {
+export function FileExplorerHeader({ connectionsQuery, connectionId, setConnectionId, kbsQuery, knowledgeBaseId, setKnowledgeBaseId, }: FileExplorerHeaderProps): JSX.Element {
   return (
     <div className="flex align-left flex-wrap gap-4">
       <div>
         <label htmlFor="connection-select" className="block text-sm font-medium text-gray-700 mb-1">Connection</label>
         <Select
-          onValueChange={(value: string): void => setSelectedConnectionId(value)}
-          value={selectedConnectionId}>
+          onValueChange={(value: string): void => setConnectionId(value)}
+          value={connectionId}>
           <SelectTrigger id="connection-select" className="w-[180px]">
             <SelectValue placeholder={connectionsQuery.isLoading ? "Loading connections..." : "Connections"} />
           </SelectTrigger>

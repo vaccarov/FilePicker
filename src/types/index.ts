@@ -51,6 +51,25 @@ export interface Connection {
   connection_provider: string;
   created_at: string;
   updated_at: string;
+  user_id: string;
+  org_id: string;
+  share_with_org: boolean;
+  connection_provider_data: {
+    access_token: string;
+    refresh_token: string;
+    scope: string;
+    token_type: string;
+    can_be_knowledge_base: boolean;
+  };
+  created_by: {
+    avatar_url: string | null;
+    full_name: string | null;
+    has_completed_onboarding: boolean;
+    last_signed_in: string;
+    updated_at: string;
+    id: string;
+    email: string;
+  };
 }
 
 export interface Resource {

@@ -1,36 +1,43 @@
 'use client';
 
+import { FileExplorerProps } from '@/components/FileExplorer';
 import { useAuth } from "@/context/AuthContext";
 import { COLUMN_ID_INODE_TYPE, DIRECTORY, FILE, INDEXED, INDEXING, NOT_INDEXED, OP_DEINDEXING, OP_INDEXING, QUERY_KEY_CONNECTIONS, QUERY_KEY_KB_RESOURCES, QUERY_KEY_KNOWLEDGE_BASES, QUERY_KEY_ORGANIZATION, QUERY_KEY_RESOURCES } from "@/lib/constants";
-import { mockResources } from "@/lib/mockData";
+import { mockResources } from '@/lib/mockData';
 import { addKnowledgeBaseResource, deleteKnowledgeBaseResource, getCurrentOrganization, listConnections, listKnowledgeBaseResources, listKnowledgeBases, listResources } from "@/services/api";
 import { Connection, IndexStatus, KnowledgeBase, Organization, PendingOperation, Resource } from "@/types";
 import { useMutation, UseMutationResult, useQuery, useQueryClient, UseQueryResult } from "@tanstack/react-query";
 import { ColumnFiltersState, SortingState } from "@tanstack/react-table";
 import { Dispatch, SetStateAction, useCallback, useEffect, useMemo, useState } from "react";
 
-export function useFileExplorer() {
-  const { token, logout }: { token: string | null, logout: () => void } = useAuth();
+export function useFileExplorer({ isOnlineMode, token }: FileExplorerProps) {
+  const { logout }: { token: string | null, logout: () => void } = useAuth();
   const queryClient = useQueryClient();
-  const [selectedConnectionId, setSelectedConnectionId]: [string, Dispatch<SetStateAction<string>>] = useState<string>('');
+  const [connectionId, setConnectionId]: [string, Dispatch<SetStateAction<string>>] = useState<string>('');
   const [knowledgeBaseId, setKnowledgeBaseId]: [string, Dispatch<SetStateAction<string>>] = useState<string>('');
   const [pendingResources, setPendingResources] = useState<Map<string, PendingOperation>>(new Map());
   const [searchTerm, setSearchTerm]: [string, Dispatch<SetStateAction<string>>] = useState<string>('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm]: [string, Dispatch<SetStateAction<string>>] = useState<string>('');
   const [currentPath, setCurrentPath]: [string | undefined, Dispatch<SetStateAction<string | undefined>>] = useState<string | undefined>(undefined);
   const [pathHistory, setPathHistory]: [Resource[], Dispatch<SetStateAction<Resource[]>>] = useState<Resource[]>([]);
   const [page, setPage]: [number, Dispatch<SetStateAction<number>>] = useState<number>(0);
   const [sorting, setSorting]: [SortingState, Dispatch<SetStateAction<SortingState>>] = useState<SortingState>([{ id: COLUMN_ID_INODE_TYPE, desc: false }]);
   const [columnFilters, setColumnFilters]: [ColumnFiltersState, Dispatch<SetStateAction<ColumnFiltersState>>] = useState<ColumnFiltersState>([]);
 
+  useEffect(() => {
+    const handler: NodeJS.Timeout = setTimeout(() => setDebouncedSearchTerm(searchTerm), 300);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
   const organizationQuery: UseQueryResult<Organization, Error> = useQuery<Organization, Error>({
-    queryKey: [QUERY_KEY_ORGANIZATION],
+    queryKey: [QUERY_KEY_ORGANIZATION, isOnlineMode],
     queryFn: () => getCurrentOrganization(token!),
-    enabled: !!token
+    enabled: !!token && isOnlineMode
   });
 
   const connectionsQuery: UseQueryResult<Connection[], Error> = useQuery<Connection[], Error>({
-    queryKey: [QUERY_KEY_CONNECTIONS],
-    queryFn: () => listConnections(token!),
+    queryKey: [QUERY_KEY_CONNECTIONS, isOnlineMode],
+    queryFn: () => listConnections(isOnlineMode, token!),
     enabled: !!token,
   });
 
@@ -38,14 +45,14 @@ export function useFileExplorer() {
     setPathHistory([]);
     setCurrentPath(undefined);
     setPage(0);
-    if (connectionsQuery.data && connectionsQuery.data.length > 0 && !selectedConnectionId) {
-      setSelectedConnectionId(connectionsQuery.data[0].connection_id);
+    if (connectionsQuery.data && connectionsQuery.data.length > 0 && !connectionId) {
+      setConnectionId(connectionsQuery.data[0].connection_id);
     }
-  }, [connectionsQuery.data, selectedConnectionId]);
+  }, [connectionsQuery.data, connectionId]);
 
   const kbsQuery: UseQueryResult<KnowledgeBase[], Error> = useQuery<KnowledgeBase[], Error>({
-    queryKey: [QUERY_KEY_KNOWLEDGE_BASES],
-    queryFn: () => listKnowledgeBases(),
+    queryKey: [QUERY_KEY_KNOWLEDGE_BASES, isOnlineMode],
+    queryFn: () => listKnowledgeBases(isOnlineMode, token!),
     enabled: !!token
   });
 
@@ -56,42 +63,48 @@ export function useFileExplorer() {
   }, [kbsQuery.data, knowledgeBaseId]);
 
   const resourcesQuery: UseQueryResult<{ data: Resource[], next_cursor: string | null }, Error> = useQuery({
-    queryKey: [QUERY_KEY_RESOURCES, selectedConnectionId, currentPath, searchTerm],
-    queryFn: () => listResources(currentPath, searchTerm),
-    enabled: !!selectedConnectionId,
+    queryKey: [QUERY_KEY_RESOURCES, connectionId, currentPath, debouncedSearchTerm, isOnlineMode],
+    queryFn: () => listResources(isOnlineMode, token!, connectionId, currentPath, debouncedSearchTerm),
+    enabled: !!connectionId,
   });
 
-  const isPollingEnabled: boolean = pendingResources.size > 0;
+  const isPollingEnabled: boolean = useMemo(() => pendingResources.size > 0, [pendingResources]);
   const kbResourcesQuery: UseQueryResult<{ data: Resource[] }, Error> = useQuery({
-    queryKey: [QUERY_KEY_KB_RESOURCES, knowledgeBaseId],
-    queryFn: () => listKnowledgeBaseResources(),
+    queryKey: [QUERY_KEY_KB_RESOURCES, knowledgeBaseId, isOnlineMode],
+    queryFn: () => listKnowledgeBaseResources(isOnlineMode, token!, knowledgeBaseId),
     enabled: !!knowledgeBaseId,
     refetchInterval: isPollingEnabled ? 3000 : false,
   });
 
   useEffect(() => {
-    if (pendingResources.size > 0) {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY_KB_RESOURCES] });
+    if (knowledgeBaseId) {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY_KB_RESOURCES, knowledgeBaseId] });
     }
-  }, [pendingResources, queryClient]);
+  }, [knowledgeBaseId, queryClient]);
 
   const indexMutation: UseMutationResult<void, Error, Resource, unknown> = useMutation({
     mutationFn: async (resource: Resource): Promise<void> => {
-      if (!token || !organizationQuery.data || !knowledgeBaseId) throw new Error('Required info missing.');
-      await addKnowledgeBaseResource(token, resource);
+      if (!token || !knowledgeBaseId) throw new Error('Required info missing.');
+      await addKnowledgeBaseResource(isOnlineMode, token, knowledgeBaseId, resource);
     },
-    onSuccess: (_, variables: Resource) => {
-      setPendingResources(prev => new Map(prev).set(variables.resource_id, OP_INDEXING));
+    onMutate: async (resource: Resource) => {
+      setPendingResources(prev => new Map(prev).set(resource.resource_id, OP_INDEXING));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY_KB_RESOURCES, knowledgeBaseId] });
     },
   });
 
   const deindexMutation: UseMutationResult<void, Error, Resource, unknown> = useMutation({
     mutationFn: async (resource: Resource): Promise<void> => {
       if (!token || !knowledgeBaseId) throw new Error('Required info missing.');
-      await deleteKnowledgeBaseResource(resource.resource_id);
+      await deleteKnowledgeBaseResource(isOnlineMode, token, knowledgeBaseId, resource.resource_id);
     },
-    onSuccess: (_, variables: Resource) => {
-      setPendingResources(prev => new Map(prev).set(variables.resource_id, OP_DEINDEXING));
+    onMutate: async (resource: Resource) => {
+      setPendingResources(prev => new Map(prev).set(resource.resource_id, OP_DEINDEXING));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY_KB_RESOURCES, knowledgeBaseId] });
     },
   });
 
@@ -120,15 +133,17 @@ export function useFileExplorer() {
     const kbStatusMap: Map<string, string> = new Map<string, string>();
     kbResourcesQuery.data?.data.forEach((res: Resource) => kbStatusMap.set(res.resource_id, INDEXED));
 
-    return resourcesQuery.data?.data.map((res: Resource) => ({
-      ...res,
-      status: pendingResources.has(res.resource_id) ? INDEXING : (kbStatusMap.get(res.resource_id) || NOT_INDEXED),
-    }));
+    return resourcesQuery.data?.data.map((res: Resource) => {
+      const pendingOperation: string | undefined = pendingResources.get(res.resource_id);
+      return {
+        ...res,
+        status: pendingOperation ? INDEXING : kbStatusMap.get(res.resource_id) || NOT_INDEXED
+      };
+    });
   }, [resourcesQuery.data, kbResourcesQuery.data, pendingResources]);
 
   const handleResourceSelect = useCallback((resource: Resource): void => {
     if (resource.status === INDEXING) return;
-
     const traverseAndMutate = (res: Resource, action: PendingOperation) => {
       const kbStatusMap: Map<string, string> = new Map<string, string>();
       kbResourcesQuery.data?.data.forEach((kbRes: Resource) => kbStatusMap.set(kbRes.resource_id, INDEXED));
@@ -152,7 +167,7 @@ export function useFileExplorer() {
     } else if (resource.inode_type === FILE) {
       if (resource.status === INDEXED) {
         deindexMutation.mutate(resource);
-      } else {
+      } else if (resource.status === NOT_INDEXED) {
         indexMutation.mutate(resource);
       }
     }
@@ -171,8 +186,8 @@ export function useFileExplorer() {
 
   return {
     logout,
-    selectedConnectionId,
-    setSelectedConnectionId,
+    connectionId,
+    setConnectionId,
     knowledgeBaseId,
     setKnowledgeBaseId,
     pathHistory,

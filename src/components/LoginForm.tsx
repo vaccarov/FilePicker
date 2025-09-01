@@ -9,15 +9,14 @@ import { getEnvVar } from "@/lib/utils";
 import { ChangeEvent, FormEvent, JSX, useState } from 'react';
 
 export function LoginForm(): JSX.Element {
+  const [email, setEmail] = useState<string>(getEnvVar('NEXT_PUBLIC_EMAIL'));
   const [password, setPassword] = useState<string>(getEnvVar('NEXT_PUBLIC_PASSWORD'));
   const { login, isPending, error } = useAuth();
 
   const handleSubmit = (e: FormEvent): void => {
     e.preventDefault();
-    if (!password) {
-      return;
-    }
-    login(password);
+    if (!email || !password) return;
+    login(email, password);
   };
 
   return (
@@ -26,18 +25,30 @@ export function LoginForm(): JSX.Element {
         <CardHeader>
           <CardTitle className="text-2xl">Login</CardTitle>
           <CardDescription>
-            Enter your Google password.
+            Enter your Google email and password.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit}>
             <div className="grid gap-4">
               <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+                  disabled={isPending}
+                />
+              </div>
+              <div className="grid gap-2">
                 <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
                   type="password"
-                  autoComplete="off"
+                  autoComplete="current-password"
                   required
                   value={password}
                   onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}

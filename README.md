@@ -69,7 +69,7 @@ If you encounter any issues or have questions, email victorvaccaro93@gmail.com o
 6. ~~Add information message on sync~~
 7. ~~Lint~~
 8. Online/offline mode (localstorage/real data)
-9. Improve login/logout UI
+9. ~~Improve login/logout UI~~
 10. Pagination
 
 
