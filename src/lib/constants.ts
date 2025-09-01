@@ -28,3 +28,6 @@ export const QUERY_KEY_KB_RESOURCES: string = "kbResources";
 
 export const MODE_ONLINE: string = "online";
 export const MODE_OFFLINE: string = "offline";
+
+export const MODE_LIGHT: string = "light";
+export const MODE_DARK: string = "dark";

@@ -2,6 +2,7 @@
 
 import { FileExplorer } from "@/components/FileExplorer";
 import { LoginForm } from "@/components/LoginForm";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -32,6 +33,7 @@ export default function Home(): JSX.Element {
   return !isAuthReady ? <></> : (
     <main className="min-h-screen content-center flex-col p-4 sm:p-12 bg-gray-100">
       <div className="absolute top-4 right-4 flex items-center space-x-4">
+        <ThemeToggle />
         {token && (
           <div className="flex items-center space-x-2">
             <Checkbox id="online-mode" checked={isOnlineMode} onCheckedChange={handleModeToggle} />
