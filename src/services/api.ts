@@ -49,9 +49,9 @@ export const listResources = async (
   connectionId: string,
   parentId?: string,
   searchTerm?: string,
-  limit: number = 10,
-  offset: number = 0
+  cursor?: string
 ): Promise<PaginatedResponse<Resource>> => {
+  const limit: number = 5;
   if (!isOnline) {
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -66,21 +66,19 @@ export const listResources = async (
           // If no parentId and no searchTerm, show root level resources (those without a parent_id)
           filteredResources = mockResources.filter((resource: Resource) => !resource.parent_id);
         }
-        // Apply pagination
-        const paginatedResources = filteredResources.slice(offset, offset + limit);
-        const nextCursor = offset + limit < filteredResources.length ? `cursor-${offset + limit}` : null;
         resolve({
-          data: paginatedResources,
-          next_cursor: nextCursor,
-          current_cursor: `cursor-${offset}`,
+          data: filteredResources,
+          next_cursor: null,
+          current_cursor: null,
         });
       }, 500);
     });
   }
   const url: URL = new URL(`${backendUrl}/connections/${connectionId}/resources/${searchTerm ? 'search' : 'children'}`);
-  url.searchParams.append('limit', String(limit));
+  url.searchParams.append('page_size', String(limit));
   if (parentId) url.searchParams.append('resource_id', parentId);
   if (searchTerm) url.searchParams.append('query', searchTerm);
+  if (cursor) url.searchParams.append('cursor', cursor);
   const response: Response = await customFetch(url.toString(),
     { headers: { Authorization: `Bearer ${token}` }
   });

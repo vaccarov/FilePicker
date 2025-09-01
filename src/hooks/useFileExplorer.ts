@@ -24,7 +24,8 @@ export function useFileExplorer({ isOnlineMode, token }: Props) {
   const [debouncedSearchTerm, setDebouncedSearchTerm]: [string, Dispatch<SetStateAction<string>>] = useState<string>('');
   const [currentPath, setCurrentPath]: [string | undefined, Dispatch<SetStateAction<string | undefined>>] = useState<string | undefined>(undefined);
   const [pathHistory, setPathHistory]: [Resource[], Dispatch<SetStateAction<Resource[]>>] = useState<Resource[]>([]);
-  const [page, setPage]: [number, Dispatch<SetStateAction<number>>] = useState<number>(0);
+  const [pageCursors, setPageCursors]: [string[], Dispatch<SetStateAction<string[]>>] = useState<string[]>([]);
+  const [currentPageIndex, setCurrentPageIndex]: [number, Dispatch<SetStateAction<number>>] = useState<number>(0);
   const [sorting, setSorting]: [SortingState, Dispatch<SetStateAction<SortingState>>] = useState<SortingState>([{ id: COLUMN_ID_INODE_TYPE, desc: false }]);
   const [columnFilters, setColumnFilters]: [ColumnFiltersState, Dispatch<SetStateAction<ColumnFiltersState>>] = useState<ColumnFiltersState>([]);
 
@@ -33,11 +34,13 @@ export function useFileExplorer({ isOnlineMode, token }: Props) {
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
+  /* Not necessary if we don't create KB
   const organizationQuery: UseQueryResult<Organization, Error> = useQuery<Organization, Error>({
     queryKey: [QUERY_KEY_ORGANIZATION, isOnlineMode],
     queryFn: () => getCurrentOrganization(token!),
     enabled: !!token && isOnlineMode
   });
+  */
 
   const connectionsQuery: UseQueryResult<Connection[], Error> = useQuery<Connection[], Error>({
     queryKey: [QUERY_KEY_CONNECTIONS, isOnlineMode],
@@ -48,11 +51,19 @@ export function useFileExplorer({ isOnlineMode, token }: Props) {
   useEffect((): void => {
     setPathHistory([]);
     setCurrentPath(undefined);
-    setPage(0);
+    setPageCursors([]);
+    setCurrentPageIndex(0);
     if (connectionsQuery.data && connectionsQuery.data.length > 0 && !connectionId) {
       setConnectionId(connectionsQuery.data[0].connection_id);
     }
   }, [connectionsQuery.data, connectionId]);
+
+  useEffect((): void => {
+    setPathHistory([]);
+    setCurrentPath(undefined);
+    setPageCursors([]);
+    setCurrentPageIndex(0);
+  }, [debouncedSearchTerm]);
 
   const kbsQuery: UseQueryResult<KnowledgeBase[], Error> = useQuery<KnowledgeBase[], Error>({
     queryKey: [QUERY_KEY_KNOWLEDGE_BASES, isOnlineMode],
@@ -67,8 +78,8 @@ export function useFileExplorer({ isOnlineMode, token }: Props) {
   }, [kbsQuery.data, knowledgeBaseId]);
 
   const resourcesQuery: UseQueryResult<{ data: Resource[], next_cursor: string | null }, Error> = useQuery({
-    queryKey: [QUERY_KEY_RESOURCES, connectionId, currentPath, debouncedSearchTerm, isOnlineMode],
-    queryFn: () => listResources(isOnlineMode, token!, connectionId, currentPath, debouncedSearchTerm),
+    queryKey: [QUERY_KEY_RESOURCES, connectionId, currentPath, debouncedSearchTerm, isOnlineMode, currentPageIndex],
+    queryFn: () => listResources(isOnlineMode, token!, connectionId, currentPath, debouncedSearchTerm, pageCursors[currentPageIndex - 1]),
     enabled: !!connectionId,
   });
 
@@ -180,13 +191,28 @@ export function useFileExplorer({ isOnlineMode, token }: Props) {
   const handleFolderClick = useCallback((resource: Resource): void => {
     setPathHistory((prevPathHistory: Resource[]): Resource[] => [...prevPathHistory, resource]);
     setCurrentPath(resource.resource_id);
+    setPageCursors([]);
+    setCurrentPageIndex(0);
   }, [setPathHistory, setCurrentPath]);
 
   const handleBreadcrumbClick = useCallback((index: number): void => {
     const newPathHistory: Resource[] = pathHistory.slice(0, index + 1);
     setPathHistory(newPathHistory);
     setCurrentPath(newPathHistory.length > 0 ? newPathHistory[newPathHistory.length - 1].resource_id : undefined);
+    setPageCursors([]);
+    setCurrentPageIndex(0);
   }, [pathHistory, setPathHistory, setCurrentPath]);
+
+  const goToNextPage = useCallback(() => {
+    setPageCursors((prev: string[]) => [...prev, resourcesQuery.data!.next_cursor!]);
+    setCurrentPageIndex((prev: number) => prev + 1);
+  }, [resourcesQuery.data]);
+
+  const goToPreviousPage = useCallback(() => {
+    if (currentPageIndex > 0) {
+      setCurrentPageIndex((prev: number) => prev - 1);
+    }
+  }, [currentPageIndex]);
 
   return {
     logout,
@@ -195,8 +221,10 @@ export function useFileExplorer({ isOnlineMode, token }: Props) {
     knowledgeBaseId,
     setKnowledgeBaseId,
     pathHistory,
-    page,
-    setPage,
+    pageCursors,
+    currentPageIndex,
+    goToNextPage,
+    goToPreviousPage,
     connectionsQuery,
     kbsQuery,
     resourcesQuery,

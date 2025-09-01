@@ -32,8 +32,9 @@ export function FileExplorer({ isOnlineMode, token }: FileExplorerProps): JSX.El
     setKnowledgeBaseId,
     pathHistory,
     setPathHistory,
-    page,
-    setPage,
+    currentPageIndex,
+    goToNextPage,
+    goToPreviousPage,
     connectionsQuery,
     kbsQuery,
     resourcesQuery,
@@ -191,18 +192,18 @@ export function FileExplorer({ isOnlineMode, token }: FileExplorerProps): JSX.El
         <PaginationContent>
           <PaginationItem>
             <PaginationPrevious
-              onClick={(): void => setPage((prevPage: number): number => Math.max(0, prevPage - 1))}
-              aria-disabled={page === 0}
+              onClick={goToPreviousPage}
+              aria-disabled={currentPageIndex === 0}
               size='default'
-              className={page === 0 ? "pointer-events-none text-muted-foreground" : "cursor-pointer"}
+              className={currentPageIndex === 0 ? "pointer-events-none text-muted-foreground" : "cursor-pointer"}
             />
           </PaginationItem>
           <PaginationItem>
-            <span className="p-2">{page + 1}</span>
+            <span className="p-2">{currentPageIndex + 1}</span>
           </PaginationItem>
           <PaginationItem>
             <PaginationNext
-              onClick={(): void => setPage((prevPage: number): number => prevPage + 1)}
+              onClick={goToNextPage}
               aria-disabled={!resourcesQuery.data?.next_cursor}
               size='default'
               className={!resourcesQuery.data?.next_cursor ? "pointer-events-none text-muted-foreground" : "cursor-pointer"}

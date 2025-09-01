@@ -62,25 +62,19 @@ If you encounter any issues or have questions, email victorvaccaro93@gmail.com o
 ### Improvements
 
 1. Better storage than localStorage
-2. Add translation
+2. ~~Add translation~~
 3. Implement multi Knowledge bases support
 4. ~~Use Tanstack Table for sortering/filtering/searching~~
-5. Use icons library instead of emojis
+5. ~~Use icons library instead of emojis~~
 6. ~~Add information message on sync~~
 7. ~~Lint~~
-8. Online/offline mode (localstorage/real data)
+8. ~~Online/offline mode (localstorage/real data)~~
 9. ~~Improve login/logout UI~~
-10. Pagination
+10. ~~Pagination~~
 
 
 ### Notes
 
-Instead of "batches" of indexation, I've took the choice to make indexation independant per file/folder, this way we can bypass the duplication of indexed files (folder+file inside). To implement batches of indexation, I would need to know how the backend handle the folder indexation.
-
-In order for the real API calls to work, 2 assertions must be true:
-
-1. Every resource must have a parent_id field in order to keep the logic of building the folder architecture
-2. Fetching resources don't take pagination into consideration. If there a "limit" parameter, we can bypass it by providing a big number for now.
-
-Functions parameters needs to be updated if we would go with the StackAI API instead of localstorage. For lint purposes, I've removed unecessary attributes.
-It's possible to make a offline/online mode that switches from localstorage to API data.
+Pagination only works in online mode
+If we refresh the page while one of the resource is pending, it will show its previous state on reload since pendingResources will reset
+Changing language reset the app current state
