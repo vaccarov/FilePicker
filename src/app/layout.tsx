@@ -27,8 +27,7 @@ export default function RootLayout({children}: Readonly<{children: React.ReactNo
           attribute="class"
           defaultTheme="system"
           enableSystem
-          disableTransitionOnChange
-        >
+          disableTransitionOnChange>
           {children}
         </Providers>
       </body>

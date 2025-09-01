@@ -11,7 +11,9 @@ export function Providers({ children, ...props }: ThemeProviderProps): JSX.Eleme
   return (
     <QueryClientProvider client={queryClient}>
       <NextThemesProvider {...props}>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </NextThemesProvider>
     </QueryClientProvider>
   );

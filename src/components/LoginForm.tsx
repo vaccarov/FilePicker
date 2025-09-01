@@ -5,10 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/context/AuthContext';
+import { useDictionary } from "@/context/DictionaryContext";
 import { getEnvVar } from "@/lib/utils";
+import { Dictionary } from "@/types";
 import { ChangeEvent, FormEvent, JSX, useState } from 'react';
 
 export function LoginForm(): JSX.Element {
+  const dictionary: Dictionary = useDictionary();
   const [email, setEmail] = useState<string>(getEnvVar('NEXT_PUBLIC_EMAIL'));
   const [password, setPassword] = useState<string>(getEnvVar('NEXT_PUBLIC_PASSWORD'));
   const { login, isPending, error } = useAuth();
@@ -23,16 +26,16 @@ export function LoginForm(): JSX.Element {
     <div className="flex items-center justify-center h-full">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-2xl">Login</CardTitle>
+          <CardTitle className="text-2xl">{dictionary.login}</CardTitle>
           <CardDescription>
-            Enter your Google email and password.
+            {dictionary.enter_email_and_password}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit}>
             <div className="grid gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{dictionary.email}</Label>
                 <Input
                   id="email"
                   type="email"
@@ -44,7 +47,7 @@ export function LoginForm(): JSX.Element {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{dictionary.password}</Label>
                 <Input
                   id="password"
                   type="password"
@@ -57,7 +60,7 @@ export function LoginForm(): JSX.Element {
               </div>
               {error && <p className="text-sm text-red-500">{error.message}</p>}
               <Button type="submit" className="w-full" disabled={isPending}>
-                {isPending ? 'Logging in...' : 'Login'}
+                {isPending ? dictionary.logging_in : dictionary.login}
               </Button>
             </div>
           </form>

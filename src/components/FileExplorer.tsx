@@ -1,25 +1,30 @@
 'use client';
 
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator, } from "@/components/ui/breadcrumb";
-import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious, } from "@/components/ui/pagination";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious, } from "@/components/ui/pagination";
 import { Toggle } from "@/components/ui/toggle";
+import { useDictionary } from "@/context/DictionaryContext";
 import { useFileExplorer } from "@/hooks/useFileExplorer";
 import { COLUMN_ID_INODE_TYPE, COLUMN_ID_NAME, COLUMN_ID_STATUS, DIRECTORY, INDEXED, INDEXING, NOT_INDEXED } from "@/lib/constants";
-import { Resource } from "@/types";
+import { Dictionary, Resource } from "@/types";
 import { ColumnDef, getCoreRowModel, getFilteredRowModel, getSortedRowModel, Row, useReactTable } from "@tanstack/react-table";
-import { Fragment, JSX, useEffect, useMemo } from "react";
+import { CheckCircle2, Filter as FilterIcon, FilterX, Loader2, XCircle } from "lucide-react";
+import { Fragment, JSX, useEffect, useMemo, useState } from "react";
 import { FileExplorerHeader } from "./FileExplorerHeader";
 import { ResourceTable } from "./ResourceTable";
 import { Skeleton } from "./ui/skeleton";
 
-export interface FileExplorerProps {
+interface FileExplorerProps {
   isOnlineMode: boolean;
   token: string;
 }
 
 export function FileExplorer({ isOnlineMode, token }: FileExplorerProps): JSX.Element {
+  const dictionary: Dictionary = useDictionary();
+  const [showFilters, setShowFilters] = useState<boolean>(false);
   const {
     connectionId,
     setConnectionId,
@@ -47,27 +52,40 @@ export function FileExplorer({ isOnlineMode, token }: FileExplorerProps): JSX.El
     currentPath
   } = useFileExplorer({ isOnlineMode, token });
 
+  const renderIcon = (status: string| undefined): JSX.Element => {
+    switch (status) {
+      case INDEXING:
+        return <Loader2 className="h-5 w-5 animate-spin" />;
+      case INDEXED:
+        return <CheckCircle2 className="h-5 w-5 text-green-500" />;
+      case NOT_INDEXED:
+        return <XCircle className="h-5 w-5 text-red-500" />;
+      default:
+        return <Skeleton className="h-5 w-full" />;
+    }
+  };
+
   const columns: ColumnDef<Resource>[] = useMemo((): ColumnDef<Resource>[] => [
     {
       accessorKey: COLUMN_ID_STATUS,
-      header: 'Synced',
+      header: dictionary.synced,
       enableColumnFilter: true,
       size: 60,
       cell: ({ row }: {row: Row<Resource>}) => (
         <Toggle
-          className="cursor-pointer"
+          className="cursor-pointer data-[state=on]:bg-transparent"
           onClick={(e: React.MouseEvent<HTMLButtonElement>): void => e.stopPropagation()}
           pressed={row.original.status === INDEXED}
           onPressedChange={(): void => handleResourceSelect(row.original)}
           disabled={row.original.status === INDEXING}
           aria-label="Toggle index status">
-          {row.original.status === INDEXING ? '⏳' : row.original.status === INDEXED ? '✔️' : row.original.status === NOT_INDEXED ? '❌' : <Skeleton className="h-5 w-full" />}
+          {renderIcon(row.original.status)}
         </Toggle>
       ),
     },
     {
       accessorKey: COLUMN_ID_INODE_TYPE,
-      header: 'Type',
+      header: dictionary.type,
       enableColumnFilter: true,
       size: 50,
       cell: ({ row }: {row: Row<Resource>}) => (row.original.inode_type === DIRECTORY ? '📁' : '📄'),
@@ -75,7 +93,7 @@ export function FileExplorer({ isOnlineMode, token }: FileExplorerProps): JSX.El
     {
       id: COLUMN_ID_NAME,
       accessorKey: 'inode_path.path',
-      header: 'Name',
+      header: dictionary.name,
       enableColumnFilter: true,
       cell: ({ row }: {row: Row<Resource>}) => (
         <span className="block truncate" title={row.original.inode_path.path}>
@@ -83,7 +101,7 @@ export function FileExplorer({ isOnlineMode, token }: FileExplorerProps): JSX.El
         </span>
       ),
     },
-  ], [handleResourceSelect]);
+  ], [handleResourceSelect, dictionary]);
 
   const table = useReactTable<Resource>({
     data: processedResource,
@@ -114,77 +132,89 @@ export function FileExplorer({ isOnlineMode, token }: FileExplorerProps): JSX.El
   }, [currentPath, searchTerm, setSearchTerm]);
 
   return (
-    <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle>File Picker</CardTitle>
-        <CardDescription>Select files and folders to index.</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <FileExplorerHeader
-          connectionsQuery={connectionsQuery}
-          connectionId={connectionId}
-          setConnectionId={setConnectionId}
-          kbsQuery={kbsQuery}
-          knowledgeBaseId={knowledgeBaseId}
-          setKnowledgeBaseId={setKnowledgeBaseId}
-        />
+    <div className="w-full max-w-4xl mx-auto flex flex-col gap-4">
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-bold">{dictionary.file_picker}</h1>
+          <p className="text-muted-foreground">{dictionary.select_files_and_folders}</p>
+        </div>
+      </div>
+      <FileExplorerHeader
+        connectionsQuery={connectionsQuery}
+        connectionId={connectionId}
+        setConnectionId={setConnectionId}
+        kbsQuery={kbsQuery}
+        knowledgeBaseId={knowledgeBaseId}
+        setKnowledgeBaseId={setKnowledgeBaseId}
+      />
+      <div className="flex items-center gap-2">
         <Input
-          placeholder="Search all resources..."
+          placeholder={dictionary.search_all_resources}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
+          className="flex-grow"
         />
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem key='rootBreadcrumb' className="cursor-pointer">
-              <BreadcrumbLink onClick={(): void => handleBreadcrumbClick(-1)}>Root</BreadcrumbLink>
-            </BreadcrumbItem>
-            {pathHistory.map((resource: Resource, index: number) => (
-              <Fragment key={resource.resource_id}>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem className="cursor-pointer" key={resource.resource_id}>
-                  <BreadcrumbLink onClick={(): void => handleBreadcrumbClick(index)}>
-                    {resource.inode_path.path}
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-              </Fragment>
-            ))}
-          </BreadcrumbList>
-        </Breadcrumb>
-        <ResourceTable
-          table={table}
-          columns={columns}
-          isLoadingResources={resourcesQuery.isLoading || connectionsQuery.isLoading}
-          resourcesError={resourcesQuery.error}
-          handleFolderClick={handleFolderClick}/>
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                onClick={(): void => setPage((prevPage: number): number => Math.max(0, prevPage - 1))}
-                aria-disabled={page === 0}
-                size='default'
-                className={page === 0 ? "pointer-events-none text-muted-foreground" : "cursor-pointer"}
-              />
-            </PaginationItem>
-            <PaginationItem>
-              <span className="p-2">{page + 1}</span>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationNext
-                onClick={(): void => setPage((prevPage: number): number => prevPage + 1)}
-                aria-disabled={!resourcesQuery.data?.next_cursor}
-                size='default'
-                className={!resourcesQuery.data?.next_cursor ? "pointer-events-none text-muted-foreground" : "cursor-pointer"}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-        {pendingResources.size > 0 && (
-          <div className="text-sm text-gray-500 mb-1 grow text-right">
-            {pendingResources.size} resource(s) syncing...
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        <Button variant="outline" size="icon" onClick={() => setShowFilters(!showFilters)}>
+          {showFilters ? <FilterX className="h-5 w-5" /> : <FilterIcon className="h-5 w-5" />}
+        </Button>
+      </div>
+      <Card>
+        <CardContent className="flex flex-col gap-4">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem key='rootBreadcrumb' className="cursor-pointer">
+                <BreadcrumbLink onClick={(): void => handleBreadcrumbClick(-1)}>{dictionary.root}</BreadcrumbLink>
+              </BreadcrumbItem>
+              {pathHistory.map((resource: Resource, index: number) => (
+                <Fragment key={resource.resource_id}>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem className="cursor-pointer" key={resource.resource_id}>
+                    <BreadcrumbLink onClick={(): void => handleBreadcrumbClick(index)}>
+                      {resource.inode_path.path}
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                </Fragment>
+              ))}
+            </BreadcrumbList>
+          </Breadcrumb>
+          <ResourceTable
+            table={table}
+            columns={columns}
+            isLoadingResources={resourcesQuery.isLoading || connectionsQuery.isLoading}
+            resourcesError={resourcesQuery.error}
+            handleFolderClick={handleFolderClick}
+            showFilters={showFilters}
+          />
+        </CardContent>
+      </Card>
+      <Pagination>
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious
+              onClick={(): void => setPage((prevPage: number): number => Math.max(0, prevPage - 1))}
+              aria-disabled={page === 0}
+              size='default'
+              className={page === 0 ? "pointer-events-none text-muted-foreground" : "cursor-pointer"}
+            />
+          </PaginationItem>
+          <PaginationItem>
+            <span className="p-2">{page + 1}</span>
+          </PaginationItem>
+          <PaginationItem>
+            <PaginationNext
+              onClick={(): void => setPage((prevPage: number): number => prevPage + 1)}
+              aria-disabled={!resourcesQuery.data?.next_cursor}
+              size='default'
+              className={!resourcesQuery.data?.next_cursor ? "pointer-events-none text-muted-foreground" : "cursor-pointer"}
+            />
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
+      {pendingResources.size > 0 && (
+        <div className="text-sm text-gray-500 mb-1 grow text-right">
+          {dictionary.resources_syncing?.replace('{count}', String(pendingResources.size))}
+        </div>
+      )}
+    </div>
   );
 }

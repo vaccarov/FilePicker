@@ -6,6 +6,8 @@ export type IndexStatus = typeof NOT_INDEXED | typeof INDEXED | typeof INDEXING;
 export type InodeType = typeof DIRECTORY | typeof FILE;
 export type PendingOperation = typeof OP_INDEXING | typeof OP_DEINDEXING;
 
+export type Dictionary = { [key: string]: string };
+
 export interface AuthResponse {
   access_token: string;
   token_type: string;

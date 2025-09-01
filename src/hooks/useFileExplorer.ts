@@ -1,6 +1,5 @@
 'use client';
 
-import { FileExplorerProps } from '@/components/FileExplorer';
 import { useAuth } from "@/context/AuthContext";
 import { COLUMN_ID_INODE_TYPE, DIRECTORY, FILE, INDEXED, INDEXING, NOT_INDEXED, OP_DEINDEXING, OP_INDEXING, QUERY_KEY_CONNECTIONS, QUERY_KEY_KB_RESOURCES, QUERY_KEY_KNOWLEDGE_BASES, QUERY_KEY_ORGANIZATION, QUERY_KEY_RESOURCES } from "@/lib/constants";
 import { mockResources } from '@/lib/mockData';
@@ -10,7 +9,12 @@ import { useMutation, UseMutationResult, useQuery, useQueryClient, UseQueryResul
 import { ColumnFiltersState, SortingState } from "@tanstack/react-table";
 import { Dispatch, SetStateAction, useCallback, useEffect, useMemo, useState } from "react";
 
-export function useFileExplorer({ isOnlineMode, token }: FileExplorerProps) {
+interface Props {
+  isOnlineMode: boolean;
+  token: string;
+}
+
+export function useFileExplorer({ isOnlineMode, token }: Props) {
   const { logout }: { token: string | null, logout: () => void } = useAuth();
   const queryClient = useQueryClient();
   const [connectionId, setConnectionId]: [string, Dispatch<SetStateAction<string>>] = useState<string>('');
