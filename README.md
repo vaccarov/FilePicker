@@ -38,7 +38,8 @@ To set up and run this project locally, follow these steps:
     ```bash
     npm run dev
     ```
-    Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
+    Open [http://localhost:3000/en](http://localhost:3000/en) in your browser to see the application.
+### Important: the server does not redirect to a specific language by default, due to a [issue documented on github](https://github.com/vercel/next.js/issues/21040) !!!
 
 ## Help
 
