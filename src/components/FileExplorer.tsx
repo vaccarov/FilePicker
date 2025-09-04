@@ -1,11 +1,9 @@
 'use client';
 
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator, } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious, } from "@/components/ui/pagination";
 import { Toggle } from "@/components/ui/toggle";
 import { useDictionary } from "@/context/DictionaryContext";
 import { useFileExplorer } from "@/hooks/useFileExplorer";
@@ -13,15 +11,12 @@ import { COLUMN_ID_INODE_TYPE, COLUMN_ID_NAME, COLUMN_ID_STATUS, DIRECTORY, FILE
 import { Dictionary, Resource } from "@/types";
 import { ColumnDef, getCoreRowModel, getFilteredRowModel, getSortedRowModel, Row, useReactTable } from "@tanstack/react-table";
 import { CheckCircle2, Filter as FilterIcon, FilterX, Loader2, XCircle } from "lucide-react";
-import { Fragment, JSX, useEffect, useMemo, useState } from "react";
+import { JSX, useEffect, useMemo, useState } from "react";
+import { Breadcrumb } from "./Breadcrumb";
 import { FileExplorerHeader } from "./FileExplorerHeader";
+import { Pagination } from "./Pagination";
 import { ResourceTable } from "./ResourceTable";
 import { Skeleton } from "./ui/skeleton";
-
-interface FileExplorerProps {
-  isOnlineMode: boolean;
-  token: string;
-}
 
 const renderIcon = (status: string| undefined): JSX.Element => {
   switch (status) {
@@ -35,6 +30,11 @@ const renderIcon = (status: string| undefined): JSX.Element => {
       return <Skeleton className="h-5 w-full" />;
   }
 };
+
+interface FileExplorerProps {
+  isOnlineMode: boolean;
+  token: string;
+}
 
 export function FileExplorer({ isOnlineMode, token }: FileExplorerProps): JSX.Element {
   const dictionary: Dictionary = useDictionary();
@@ -184,56 +184,23 @@ export function FileExplorer({ isOnlineMode, token }: FileExplorerProps): JSX.El
       </div>
       <Card>
         <CardContent className="flex flex-col gap-4">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem key='rootBreadcrumb' className="cursor-pointer">
-                <BreadcrumbLink onClick={(): void => handleBreadcrumbClick(-1)}>{dictionary.root}</BreadcrumbLink>
-              </BreadcrumbItem>
-              {pathHistory.map((resource: Resource, index: number) => (
-                <Fragment key={resource.resource_id}>
-                  <BreadcrumbSeparator />
-                  <BreadcrumbItem className="cursor-pointer" key={resource.resource_id}>
-                    <BreadcrumbLink onClick={(): void => handleBreadcrumbClick(index)}>
-                      {resource.inode_path.path}
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                </Fragment>
-              ))}
-            </BreadcrumbList>
-          </Breadcrumb>
+          <Breadcrumb pathHistory={pathHistory} handleBreadcrumbClick={handleBreadcrumbClick} />
           <ResourceTable
             table={table}
             columns={columns}
-            isLoadingResources={resourcesQuery.isLoading || connectionsQuery.isLoading}
+            isLoadingResources={resourcesQuery.isFetching || connectionsQuery.isFetching}
             resourcesError={resourcesQuery.error}
             handleFolderClick={handleFolderClick}
             showFilters={showFilters}
           />
         </CardContent>
       </Card>
-      <Pagination>
-        <PaginationContent>
-          <PaginationItem>
-            <PaginationPrevious
-              onClick={goToPreviousPage}
-              aria-disabled={currentPageIndex === 0}
-              size='default'
-              className={currentPageIndex === 0 ? "pointer-events-none text-muted-foreground" : "cursor-pointer"}
-            />
-          </PaginationItem>
-          <PaginationItem>
-            <span className="p-2">{currentPageIndex + 1}</span>
-          </PaginationItem>
-          <PaginationItem>
-            <PaginationNext
-              onClick={goToNextPage}
-              aria-disabled={!resourcesQuery.data?.next_cursor}
-              size='default'
-              className={!resourcesQuery.data?.next_cursor ? "pointer-events-none text-muted-foreground" : "cursor-pointer"}
-            />
-          </PaginationItem>
-        </PaginationContent>
-      </Pagination>
+      <Pagination
+        currentPageIndex={currentPageIndex}
+        goToPreviousPage={goToPreviousPage}
+        goToNextPage={goToNextPage}
+        canGoToNextPage={!!resourcesQuery.data?.next_cursor}
+      />
       <div className="flex justify-end items-center gap-4">
         {isOnlineMode && !knowledgeBaseId && selectedResources?.length > 0 && !isCreatingKb && (
           <div className="text-sm text-gray-500">

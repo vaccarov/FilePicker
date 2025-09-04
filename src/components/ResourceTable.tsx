@@ -1,14 +1,13 @@
 'use client';
 
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useDictionary } from "@/context/DictionaryContext";
-import { COLUMN_ID_INODE_TYPE, COLUMN_ID_STATUS, DIRECTORY, FILE, INDEXED, INDEXING, NOT_INDEXED } from "@/lib/constants";
+import { DIRECTORY } from "@/lib/constants";
 import { Dictionary, Resource } from "@/types";
-import { Column, ColumnDef, flexRender, Header, HeaderGroup, Table as TanstackTable } from "@tanstack/react-table";
+import { ColumnDef, flexRender, Header, HeaderGroup, Table as TanstackTable } from "@tanstack/react-table";
 import { Fragment, JSX } from "react";
+import { Filter } from "./Filter";
 
 interface ResourceTableProps {
   table: TanstackTable<Resource>;
@@ -17,61 +16,6 @@ interface ResourceTableProps {
   resourcesError: Error | null;
   handleFolderClick: (resource: Resource) => void;
   showFilters: boolean;
-}
-
-function Filter({ column }: { column: Column<Resource, unknown> }): JSX.Element {
-  const dictionary: Dictionary = useDictionary();
-  const columnFilterValue: string | undefined = column.getFilterValue() as string | undefined;
-
-  const handleSelectChange = (value: string): void => {
-    column.setFilterValue(value !== 'all' ? value : undefined);
-  };
-
-  if (column.id === COLUMN_ID_STATUS) {
-    return (
-      <Select
-        onValueChange={handleSelectChange}
-        value={columnFilterValue?.toString() || 'all'}>
-        <SelectTrigger className="w-full border shadow rounded" onClick={(e: React.MouseEvent<HTMLButtonElement>): void => e.stopPropagation()}>
-          <SelectValue placeholder={dictionary.filter_status} />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">{dictionary.all}</SelectItem>
-          <SelectItem value={INDEXED}>{dictionary.indexed}</SelectItem>
-          <SelectItem value={NOT_INDEXED}>{dictionary.not_indexed}</SelectItem>
-          <SelectItem value={INDEXING}>{dictionary.indexing}</SelectItem>
-        </SelectContent>
-      </Select>
-    );
-  }
-
-  if (column.id === COLUMN_ID_INODE_TYPE) {
-    return (
-      <Select
-        onValueChange={handleSelectChange}
-        value={columnFilterValue?.toString() || 'all'}>
-        <SelectTrigger className="w-full border shadow rounded" onClick={(e: React.MouseEvent<HTMLButtonElement>): void => e.stopPropagation()}>
-          <SelectValue placeholder={dictionary.filter_type} />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">{dictionary.all}</SelectItem>
-          <SelectItem value={DIRECTORY}>{dictionary.directory}</SelectItem>
-          <SelectItem value={FILE}>{dictionary.file}</SelectItem>
-        </SelectContent>
-      </Select>
-    );
-  }
-
-  return (
-    <Input
-      type="text"
-      value={(columnFilterValue ?? '') as string}
-      onChange={(e: React.ChangeEvent<HTMLInputElement>): void => column.setFilterValue(e.target.value)}
-      placeholder={dictionary.search_name}
-      className="w-full border shadow rounded"
-      onClick={(e: React.MouseEvent<HTMLInputElement>): void => e.stopPropagation()}
-    />
-  );
 }
 
 export function ResourceTable({ table, columns, isLoadingResources, resourcesError, handleFolderClick, showFilters }: ResourceTableProps): JSX.Element {
