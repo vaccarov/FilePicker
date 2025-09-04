@@ -117,14 +117,14 @@ export function ResourceTable({ table, columns, isLoadingResources, resourcesErr
           {isLoadingResources ? (
             [...Array(3)].map((_, i: number) => (
               <TableRow key={i} className="hover:bg-transparent">
-                <TableCell><Skeleton className="h-5 w-full" /></TableCell>
-                <TableCell><Skeleton className="h-5 w-full" /></TableCell>
-                <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                <TableCell><Skeleton className="h-9 w-full" /></TableCell>
+                <TableCell><Skeleton className="h-9 w-full" /></TableCell>
+                <TableCell><Skeleton className="h-9 w-full" /></TableCell>
               </TableRow>
             ))
           ) : table.getRowModel().rows.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={columns.length} className="text-center py-4">
+              <TableCell colSpan={columns.length} className="h-9 text-center py-4">
                 {resourcesError && dictionary.error_loading_resources?.replace('{message}', resourcesError.message)}
                 {!resourcesError && dictionary.no_resources_found}
               </TableCell>
@@ -137,7 +137,9 @@ export function ResourceTable({ table, columns, isLoadingResources, resourcesErr
                 className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
                 {row.getVisibleCells().map(cell => (
                   <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    <div className="h-9 flex items-center">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </div>
                   </TableCell>
                 ))}
               </TableRow>

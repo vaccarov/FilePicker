@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuth } from "@/context/AuthContext";
-import { COLUMN_ID_INODE_TYPE, DIRECTORY, FILE, INDEXED, INDEXING, NOT_INDEXED, OP_DEINDEXING, OP_INDEXING, QUERY_KEY_CONNECTIONS, QUERY_KEY_KB_RESOURCES, QUERY_KEY_KNOWLEDGE_BASES, QUERY_KEY_ORGANIZATION, QUERY_KEY_RESOURCES } from "@/lib/constants";
+import { COLUMN_ID_INODE_TYPE, DIRECTORY, FILE, INDEXED, INDEXING, NOT_INDEXED, OP_DEINDEXING, OP_INDEXING, QUERY_KEY_CONNECTIONS, QUERY_KEY_KB_RESOURCES, QUERY_KEY_KNOWLEDGE_BASES, QUERY_KEY_ORGANIZATION, QUERY_KEY_RESOURCES, REFRESH_MS } from "@/lib/constants";
 import { mockResources } from '@/lib/mockData';
 import { addKnowledgeBaseResource, createKnowledgeBase, deleteKnowledgeBaseResource, getCurrentOrganization, listConnections, listKnowledgeBaseResources, listKnowledgeBases, listResources, syncKnowledgeBase } from "@/services/api";
 import { Connection, IndexStatus, KnowledgeBase, Organization, PendingOperation, Resource } from "@/types";
@@ -95,7 +95,7 @@ export function useFileExplorer({ isOnlineMode, token }: Props) {
     queryKey: [QUERY_KEY_KB_RESOURCES, knowledgeBaseId, isOnlineMode, kbQueryPath],
     queryFn: () => listKnowledgeBaseResources(isOnlineMode, token!, knowledgeBaseId, kbQueryPath),
     enabled: !!knowledgeBaseId,
-    refetchInterval: isPollingEnabled ? 3000 : false,
+    refetchInterval: isPollingEnabled ? REFRESH_MS : false,
   });
 
   useEffect(() => {
@@ -157,7 +157,7 @@ export function useFileExplorer({ isOnlineMode, token }: Props) {
     try {
       const newKb: KnowledgeBase = await createKnowledgeBase(token, connectionId, finalResourceIds);
       await syncKnowledgeBase(token, newKb.knowledge_base_id, organizationQuery.data.org_id);
-      queryClient.setQueryData([QUERY_KEY_KNOWLEDGE_BASES], (oldData: KnowledgeBase[] | undefined) => (oldData ? [...oldData, newKb] : [newKb]));
+      queryClient.setQueryData([QUERY_KEY_KNOWLEDGE_BASES, isOnlineMode], (oldData: KnowledgeBase[] | undefined) => (oldData ? [...oldData, newKb] : [newKb]));
       setKnowledgeBaseId(newKb.knowledge_base_id);
       setSelectedResources([]);
       setCurrentPath(undefined);
@@ -170,7 +170,7 @@ export function useFileExplorer({ isOnlineMode, token }: Props) {
     } finally {
       setIsCreatingKb(false);
     }
-  }, [token, connectionId, organizationQuery.data?.org_id, selectedResources, queryClient, setKnowledgeBaseId]);
+  }, [token, connectionId, organizationQuery.data?.org_id, selectedResources, queryClient, setKnowledgeBaseId, isOnlineMode]);
 
   useEffect(() => {
     if (kbResourcesQuery.data) {

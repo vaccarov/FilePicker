@@ -9,7 +9,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationNext, Paginati
 import { Toggle } from "@/components/ui/toggle";
 import { useDictionary } from "@/context/DictionaryContext";
 import { useFileExplorer } from "@/hooks/useFileExplorer";
-import { COLUMN_ID_INODE_TYPE, COLUMN_ID_NAME, COLUMN_ID_STATUS, DIRECTORY, INDEXED, INDEXING, NOT_INDEXED } from "@/lib/constants";
+import { COLUMN_ID_INODE_TYPE, COLUMN_ID_NAME, COLUMN_ID_STATUS, DIRECTORY, FILE, INDEXED, INDEXING, NOT_INDEXED } from "@/lib/constants";
 import { Dictionary, Resource } from "@/types";
 import { ColumnDef, getCoreRowModel, getFilteredRowModel, getSortedRowModel, Row, useReactTable } from "@tanstack/react-table";
 import { CheckCircle2, Filter as FilterIcon, FilterX, Loader2, XCircle } from "lucide-react";
@@ -75,35 +75,38 @@ export function FileExplorer({ isOnlineMode, token }: FileExplorerProps): JSX.El
       accessorKey: COLUMN_ID_STATUS,
       header: dictionary.synced,
       enableColumnFilter: true,
-      size: 60,
+      size: 100,
       cell: ({ row }: { row: Row<Resource> }) => {
-        return (!isOnlineMode || knowledgeBaseId) ? (
-          <Toggle
-            className="cursor-pointer data-[state=on]:bg-transparent"
-            onClick={(e: React.MouseEvent<HTMLButtonElement>): void => e.stopPropagation()}
-            pressed={row.original.status === INDEXED}
-            onPressedChange={(): void => handleResourceSelect(row.original)}
-            disabled={row.original.status === INDEXING}
-            aria-label="Toggle index status">
-            {renderIcon(row.original.status)}
-          </Toggle>
-        ) : (
-          <Checkbox
-            onClick={(e: React.MouseEvent<HTMLButtonElement>): void => e.stopPropagation()}
-            className="cursor-pointer"
-            checked={selectedResources.some((resource: Resource) => resource.resource_id === row.original.resource_id)}
-            onCheckedChange={(): void => handleResourceSelect(row.original)}
-            disabled={isCreatingKb}
-            aria-label="Select resource"
-          />
-        )
+        if (isOnlineMode && !knowledgeBaseId)
+          return (
+            <Checkbox
+              onClick={(e: React.MouseEvent<HTMLButtonElement>): void => e.stopPropagation()}
+              className="cursor-pointer"
+              checked={selectedResources.some((resource: Resource) => resource.resource_id === row.original.resource_id)}
+              onCheckedChange={(): void => handleResourceSelect(row.original)}
+              disabled={isCreatingKb}
+              aria-label="Select resource"
+            />
+          );
+        if (!isOnlineMode || row.original.inode_type === FILE)
+          return (
+            <Toggle
+              className="cursor-pointer data-[state=on]:bg-transparent dark:data-[state=on]:bg-transparent"
+              onClick={(e: React.MouseEvent<HTMLButtonElement>): void => e.stopPropagation()}
+              pressed={row.original.status === INDEXED}
+              onPressedChange={(): void => handleResourceSelect(row.original)}
+              disabled={row.original.status === INDEXING}
+              aria-label="Toggle index status">
+              {renderIcon(row.original.status)}
+            </Toggle>
+          );
       },
     },
     {
       accessorKey: COLUMN_ID_INODE_TYPE,
       header: dictionary.type,
       enableColumnFilter: true,
-      size: 50,
+      size: 60,
       cell: ({ row }: {row: Row<Resource>}) => (row.original.inode_type === DIRECTORY ? '📁' : '📄'),
     },
     {
@@ -237,7 +240,7 @@ export function FileExplorer({ isOnlineMode, token }: FileExplorerProps): JSX.El
             {dictionary.resources_selected?.replace('{count}', String(selectedResources.length))}
           </div>
         )}
-        {pendingResources.size > 0 && (
+        {!isOnlineMode && pendingResources.size > 0 && (
           <div className="text-sm text-gray-500">
             {dictionary.resources_syncing?.replace('{count}', String(pendingResources.size))}
           </div>

@@ -34,3 +34,4 @@ export const MODE_DARK: string = "dark";
 
 export const REQUEST_MS: number = 200;
 export const SYNC_MS: number = 2000;
+export const REFRESH_MS: number = 3000;
