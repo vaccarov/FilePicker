@@ -112,7 +112,7 @@ export function useResourceMutations({
     } finally {
       setIsCreatingKb(false);
     }
-  }, [token, connectionId, organizationQuery.data?.org_id, selectedResources, queryClient, isOnlineMode, setKnowledgeBaseId, setSelectedResources, setCurrentPath, setPathHistory, setPageCursors, setCurrentPageIndex, setPendingResources]);
+  }, [token, connectionId, organizationQuery.data?.org_id, selectedResources, queryClient, isOnlineMode, setKnowledgeBaseId, setSelectedResources, setCurrentPath, setPathHistory, setPageCursors, setCurrentPageIndex, setPendingResources, setIsCreatingKb]);
 
   return {
     indexMutation,
