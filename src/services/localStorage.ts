@@ -19,8 +19,8 @@ export const addKbResourceToLocalStorage = (resource: Resource): void => {
   saveKbResourcesToLocalStorage(updatedResources);
 };
 
-export const removeKbResourceFromLocalStorage = (resourceId: string): void => {
+export const removeKbResourceFromLocalStorage = (resource_path: string): void => {
   const currentResources: Resource[] = getKbResourcesFromLocalStorage();
-  const updatedResources: Resource[] = currentResources.filter(r => r.resource_id !== resourceId);
+  const updatedResources: Resource[] = currentResources.filter(r => r.inode_path.path !== resource_path);
   saveKbResourcesToLocalStorage(updatedResources);
 };

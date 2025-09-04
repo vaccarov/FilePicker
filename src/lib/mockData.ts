@@ -101,6 +101,45 @@ export const mockResources: Resource[] = [
 
 export const mockKnowledgeBases: KnowledgeBase[] = [
   {
+    "knowledge_base_id": "e1a0ccb5-24ba-454f-abbe-1b42ce1dac3d",
+    "connection_id": "96891794-4313-42f1-9d98-237e526165b8",
+    "created_at": "2025-09-01T16:17:46.080703Z",
+    "updated_at": "2025-09-01T16:17:46.080711Z",
+    "connection_source_ids": [
+      "19Bvjgw4w6LdltkjZ7yL685xtmjPXWX7d",
+      "1UdRAmc-fBWRfYY4Z7XHhi_-tVDJsmGkf"
+    ],
+    "website_sources": [],
+    "connection_provider_type": "gdrive",
+    "is_empty": true,
+    "total_size": 0,
+    "name": "Unnamed Knowledge Base",
+    "description": "",
+    "indexing_params": {
+      "ocr": false,
+      "unstructured": true,
+      "embedding_params": {
+        "api": null,
+        "base_url": null,
+        "embedding_model": "text-embedding-ada-002",
+        "provider": null,
+        "batch_size": 300,
+        "track_usage": true,
+        "timeout": 5
+      },
+      "chunker_params": {
+        "chunk_size": 1500,
+        "chunk_overlap": 500,
+        "chunker_type": "sentence"
+      }
+    },
+    "cron_job_id": null,
+    "org_id": "0d582f36-52dd-403f-a38a-ccf4dfa06180",
+    "org_level_role": null,
+    "user_metadata_schema": null,
+    "dataloader_metadata_schema": null
+  },
+  {
     "knowledge_base_id": "9d376111-8357-4455-8119-78a3c3067110",
     "connection_id": null,
     "created_at": "2025-08-26T16:16:40.838658Z",

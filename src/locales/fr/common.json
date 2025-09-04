@@ -36,5 +36,6 @@
   "knowledge_base": "Base de connaissances",
   "loading_knowledge_bases": "Chargement des bases de connaissances...",
   "error_loading_kbs": "Erreur lors du chargement des bases de connaissances : {message}",
-  "search_name": "Rechercher par nom..."
+  "search_name": "Rechercher par nom...",
+  "resources_selected": "{count} ressource(s) sélectionnée(s)"
 }

@@ -36,5 +36,6 @@
   "knowledge_base": "Knowledge Base",
   "loading_knowledge_bases": "Loading knowledge bases...",
   "error_loading_kbs": "Error loading knowledge bases: {message}",
-  "search_name": "Search name..."
+  "search_name": "Search name...",
+  "resources_selected": "{count} resource(s) selected"
 }

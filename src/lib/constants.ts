@@ -31,3 +31,6 @@ export const MODE_OFFLINE: string = "offline";
 
 export const MODE_LIGHT: string = "light";
 export const MODE_DARK: string = "dark";
+
+export const REQUEST_MS: number = 200;
+export const SYNC_MS: number = 2000;

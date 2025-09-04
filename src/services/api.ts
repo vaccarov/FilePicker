@@ -2,6 +2,7 @@ import { mockConnections, mockKnowledgeBases, mockResources } from '@/lib/mockDa
 import { getEnvVar } from '@/lib/utils';
 import { AuthResponse, Connection, KnowledgeBase, Organization, PaginatedResponse, Resource } from '@/types';
 import { addKbResourceToLocalStorage, getKbResourcesFromLocalStorage, removeKbResourceFromLocalStorage } from './localStorage';
+import { REQUEST_MS, SYNC_MS } from '@/lib/constants';
 
 const backendUrl: string = getEnvVar('NEXT_PUBLIC_BACKEND_URL');
 
@@ -33,7 +34,7 @@ export const getAuthToken = async ({ email, password }: { email: string; passwor
 export const listConnections = async (isOnline: boolean, token: string): Promise<Connection[]> => {
   if (!isOnline) {
     return new Promise((resolve) => {
-      setTimeout(() => resolve(mockConnections), 500);
+      setTimeout(() => resolve(mockConnections), REQUEST_MS);
     });
   }
   const response: Response = await customFetch(`${backendUrl}/connections?connection_provider=gdrive`,
@@ -51,7 +52,7 @@ export const listResources = async (
   searchTerm?: string,
   cursor?: string
 ): Promise<PaginatedResponse<Resource>> => {
-  const limit: number = 5;
+  const limit: number = 15;
   if (!isOnline) {
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -71,7 +72,7 @@ export const listResources = async (
           next_cursor: null,
           current_cursor: null,
         });
-      }, 500);
+      }, REQUEST_MS);
     });
   }
   const url: URL = new URL(`${backendUrl}/connections/${connectionId}/resources/${searchTerm ? 'search' : 'children'}`);
@@ -97,7 +98,7 @@ export const getCurrentOrganization = async (token: string): Promise<Organizatio
 export const listKnowledgeBases = async (isOnline: boolean, token: string): Promise<KnowledgeBase[]> => {
   if (!isOnline) {
     return new Promise((resolve) => {
-      setTimeout(() => resolve(mockKnowledgeBases), 500);
+      setTimeout(() => resolve(mockKnowledgeBases), REQUEST_MS);
     });
   }
   const response: Response = await customFetch(`${backendUrl}/knowledge_bases`, {
@@ -122,13 +123,7 @@ export const createKnowledgeBase = async (token: string, connection_id: string, 
   return response.json();
 };
 
-export const syncKnowledgeBase = async (isOnline: boolean, token: string, kbId: string, orgId: string): Promise<void> => {
-  if (!isOnline) {
-    console.log('Syncing knowledge base (offline):', kbId);
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(), 2000);
-    });
-  }
+export const syncKnowledgeBase = async (token: string, kbId: string, orgId: string): Promise<void> => {
   const response: Response = await customFetch(`${backendUrl}/knowledge_bases/sync/trigger/${kbId}/${orgId}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -137,7 +132,7 @@ export const syncKnowledgeBase = async (isOnline: boolean, token: string, kbId: 
   }
 };
 
-export const listKnowledgeBaseResources = async (isOnline: boolean, token: string, kbId: string): Promise<PaginatedResponse<Resource>> => {
+export const listKnowledgeBaseResources = async (isOnline: boolean, token: string, kbId: string, path: string): Promise<PaginatedResponse<Resource>> => {
   if (!isOnline) {
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -146,11 +141,13 @@ export const listKnowledgeBaseResources = async (isOnline: boolean, token: strin
           next_cursor: null,
           current_cursor: null,
         });
-      }, 500);
+      }, REQUEST_MS);
     });
   }
 
-  const response: Response = await customFetch(`${backendUrl}/knowledge_bases/${kbId}/resources/children`, {
+  const url: URL = new URL(`${backendUrl}/knowledge_bases/${kbId}/resources/children`);
+  url.searchParams.append('resource_path', path);
+  const response: Response = await customFetch(url.toString(), {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!response.ok) { throw new Error('Failed to fetch knowledge base resources'); }
@@ -159,9 +156,9 @@ export const listKnowledgeBaseResources = async (isOnline: boolean, token: strin
 
 export const addKnowledgeBaseResource = async (isOnline: boolean, token: string, kbId: string, resource: Resource): Promise<void> => {
   if (!isOnline) {
-    setTimeout(() => addKbResourceToLocalStorage(resource), 2000);
+    setTimeout(() => addKbResourceToLocalStorage(resource), SYNC_MS);
     return new Promise((resolve) => {
-      setTimeout(() => resolve(), 200);
+      setTimeout(() => resolve(), REQUEST_MS);
     });
   }
   const response: Response = await customFetch(`${backendUrl}/knowledge_bases/${kbId}/resources`,
@@ -175,16 +172,15 @@ export const addKnowledgeBaseResource = async (isOnline: boolean, token: string,
   }
 };
 
-export const deleteKnowledgeBaseResource = async (isOnline: boolean, token: string, kbId: string, resourceId: string): Promise<void> => {
-  console.log('deinexing resource:', resourceId, isOnline);
+export const deleteKnowledgeBaseResource = async (isOnline: boolean, token: string, kbId: string, resource_path: string): Promise<void> => {
   if (!isOnline) {
-    setTimeout(() => removeKbResourceFromLocalStorage(resourceId), 2000);
+    setTimeout(() => removeKbResourceFromLocalStorage(resource_path), SYNC_MS);
     return new Promise((resolve) => {
-      setTimeout(() => resolve(), 200);
+      setTimeout(() => resolve(), REQUEST_MS);
     });
   }
   const url: URL = new URL(`${backendUrl}/knowledge_bases/${kbId}/resources`);
-  url.searchParams.append('resource_id', resourceId);
+  url.searchParams.append('resource_path', resource_path);
   const response: Response = await customFetch(url.toString(), {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },

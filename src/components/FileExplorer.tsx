@@ -3,6 +3,7 @@
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator, } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious, } from "@/components/ui/pagination";
 import { Toggle } from "@/components/ui/toggle";
@@ -21,6 +22,19 @@ interface FileExplorerProps {
   isOnlineMode: boolean;
   token: string;
 }
+
+const renderIcon = (status: string| undefined): JSX.Element => {
+  switch (status) {
+    case INDEXING:
+      return <Loader2 className="h-5 w-5 animate-spin" />;
+    case INDEXED:
+      return <CheckCircle2 className="h-5 w-5 text-green-500" />;
+    case NOT_INDEXED:
+      return <XCircle className="h-5 w-5 text-red-500" />;
+    default:
+      return <Skeleton className="h-5 w-full" />;
+  }
+};
 
 export function FileExplorer({ isOnlineMode, token }: FileExplorerProps): JSX.Element {
   const dictionary: Dictionary = useDictionary();
@@ -50,21 +64,11 @@ export function FileExplorer({ isOnlineMode, token }: FileExplorerProps): JSX.El
     searchTerm,
     setSearchTerm,
     setCurrentPath,
-    currentPath
+    currentPath,
+    createAndSyncKnowledgeBase,
+    selectedResources,
+    isCreatingKb,
   } = useFileExplorer({ isOnlineMode, token });
-
-  const renderIcon = (status: string| undefined): JSX.Element => {
-    switch (status) {
-      case INDEXING:
-        return <Loader2 className="h-5 w-5 animate-spin" />;
-      case INDEXED:
-        return <CheckCircle2 className="h-5 w-5 text-green-500" />;
-      case NOT_INDEXED:
-        return <XCircle className="h-5 w-5 text-red-500" />;
-      default:
-        return <Skeleton className="h-5 w-full" />;
-    }
-  };
 
   const columns: ColumnDef<Resource>[] = useMemo((): ColumnDef<Resource>[] => [
     {
@@ -72,17 +76,28 @@ export function FileExplorer({ isOnlineMode, token }: FileExplorerProps): JSX.El
       header: dictionary.synced,
       enableColumnFilter: true,
       size: 60,
-      cell: ({ row }: {row: Row<Resource>}) => (
-        <Toggle
-          className="cursor-pointer data-[state=on]:bg-transparent"
-          onClick={(e: React.MouseEvent<HTMLButtonElement>): void => e.stopPropagation()}
-          pressed={row.original.status === INDEXED}
-          onPressedChange={(): void => handleResourceSelect(row.original)}
-          disabled={row.original.status === INDEXING}
-          aria-label="Toggle index status">
-          {renderIcon(row.original.status)}
-        </Toggle>
-      ),
+      cell: ({ row }: { row: Row<Resource> }) => {
+        return (!isOnlineMode || knowledgeBaseId) ? (
+          <Toggle
+            className="cursor-pointer data-[state=on]:bg-transparent"
+            onClick={(e: React.MouseEvent<HTMLButtonElement>): void => e.stopPropagation()}
+            pressed={row.original.status === INDEXED}
+            onPressedChange={(): void => handleResourceSelect(row.original)}
+            disabled={row.original.status === INDEXING}
+            aria-label="Toggle index status">
+            {renderIcon(row.original.status)}
+          </Toggle>
+        ) : (
+          <Checkbox
+            onClick={(e: React.MouseEvent<HTMLButtonElement>): void => e.stopPropagation()}
+            className="cursor-pointer"
+            checked={selectedResources.some((resource: Resource) => resource.resource_id === row.original.resource_id)}
+            onCheckedChange={(): void => handleResourceSelect(row.original)}
+            disabled={isCreatingKb}
+            aria-label="Select resource"
+          />
+        )
+      },
     },
     {
       accessorKey: COLUMN_ID_INODE_TYPE,
@@ -102,7 +117,7 @@ export function FileExplorer({ isOnlineMode, token }: FileExplorerProps): JSX.El
         </span>
       ),
     },
-  ], [handleResourceSelect, dictionary]);
+  ], [handleResourceSelect, dictionary, isOnlineMode, selectedResources, knowledgeBaseId, isCreatingKb]);
 
   const table = useReactTable<Resource>({
     data: processedResource,
@@ -147,6 +162,11 @@ export function FileExplorer({ isOnlineMode, token }: FileExplorerProps): JSX.El
         kbsQuery={kbsQuery}
         knowledgeBaseId={knowledgeBaseId}
         setKnowledgeBaseId={setKnowledgeBaseId}
+        // For creating and syncing knowledge base
+        isOnlineMode={isOnlineMode}
+        isCreatingKb={isCreatingKb}
+        selectedResources={selectedResources}
+        createAndSyncKnowledgeBase={createAndSyncKnowledgeBase}
       />
       <div className="flex items-center gap-2">
         <Input
@@ -211,11 +231,18 @@ export function FileExplorer({ isOnlineMode, token }: FileExplorerProps): JSX.El
           </PaginationItem>
         </PaginationContent>
       </Pagination>
-      {pendingResources.size > 0 && (
-        <div className="text-sm text-gray-500 mb-1 grow text-right">
-          {dictionary.resources_syncing?.replace('{count}', String(pendingResources.size))}
-        </div>
-      )}
+      <div className="flex justify-end items-center gap-4">
+        {isOnlineMode && !knowledgeBaseId && selectedResources?.length > 0 && !isCreatingKb && (
+          <div className="text-sm text-gray-500">
+            {dictionary.resources_selected?.replace('{count}', String(selectedResources.length))}
+          </div>
+        )}
+        {pendingResources.size > 0 && (
+          <div className="text-sm text-gray-500">
+            {dictionary.resources_syncing?.replace('{count}', String(pendingResources.size))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

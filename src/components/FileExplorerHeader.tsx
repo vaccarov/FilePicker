@@ -1,9 +1,11 @@
 'use client';
 
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDictionary } from "@/context/DictionaryContext";
-import { Connection, Dictionary, KnowledgeBase } from "@/types";
+import { Connection, Dictionary, KnowledgeBase, Resource } from "@/types";
 import { UseQueryResult } from "@tanstack/react-query";
+import { Loader2, Plus } from "lucide-react";
 import { Dispatch, JSX, SetStateAction } from "react";
 
 interface FileExplorerHeaderProps {
@@ -13,12 +15,16 @@ interface FileExplorerHeaderProps {
   kbsQuery: UseQueryResult<KnowledgeBase[], Error>;
   knowledgeBaseId: string;
   setKnowledgeBaseId: Dispatch<SetStateAction<string>>;
+  isOnlineMode: boolean;
+  isCreatingKb: boolean;
+  selectedResources: Resource[];
+  createAndSyncKnowledgeBase: () => void;
 }
 
-export function FileExplorerHeader({ connectionsQuery, connectionId, setConnectionId, kbsQuery, knowledgeBaseId, setKnowledgeBaseId }: FileExplorerHeaderProps): JSX.Element {
+export function FileExplorerHeader({ connectionsQuery, connectionId, setConnectionId, kbsQuery, knowledgeBaseId, setKnowledgeBaseId, isOnlineMode, isCreatingKb, selectedResources, createAndSyncKnowledgeBase }: FileExplorerHeaderProps): JSX.Element {
   const dictionary: Dictionary = useDictionary();
   return (
-    <div className="flex align-left flex-wrap gap-4">
+    <div className="flex align-left flex-wrap gap-4 items-end">
       <div>
         <label htmlFor="connection-select" className="block text-sm font-medium text-gray-700 mb-1">{dictionary.select_a_connection}</label>
         <Select
@@ -51,6 +57,15 @@ export function FileExplorerHeader({ connectionsQuery, connectionId, setConnecti
         </Select>
         {kbsQuery.error && <p className="text-red-500 font-bold">{dictionary.error_loading_kbs?.replace("{message}", kbsQuery.error.message)}</p>}
       </div>
+      {isOnlineMode && (
+        <div className="flex items-center gap-2">
+          {!knowledgeBaseId && 
+            <Button onClick={createAndSyncKnowledgeBase} disabled={isCreatingKb || selectedResources.length === 0} size="icon">
+              {isCreatingKb ? <Loader2 className="h-5 w-5 animate-spin" /> : <Plus className="h-5 w-5" />}
+            </Button>
+          }
+        </div>
+      )}
     </div>
   );
 }
