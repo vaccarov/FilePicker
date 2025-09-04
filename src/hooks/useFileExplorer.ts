@@ -1,13 +1,13 @@
 'use client';
 
 import { useAuth } from "@/context/AuthContext";
-import { COLUMN_ID_INODE_TYPE, DIRECTORY, FILE, INDEXED, INDEXING, NOT_INDEXED, OP_DEINDEXING, OP_INDEXING, QUERY_KEY_CONNECTIONS, QUERY_KEY_KB_RESOURCES, QUERY_KEY_KNOWLEDGE_BASES, QUERY_KEY_ORGANIZATION, QUERY_KEY_RESOURCES, REFRESH_MS } from "@/lib/constants";
+import { COLUMN_ID_INODE_TYPE, DIRECTORY, FILE, INDEXED, INDEXING, NOT_INDEXED, OP_DEINDEXING, OP_INDEXING } from "@/lib/constants";
 import { mockResources } from '@/lib/mockData';
-import { addKnowledgeBaseResource, createKnowledgeBase, deleteKnowledgeBaseResource, getCurrentOrganization, listConnections, listKnowledgeBaseResources, listKnowledgeBases, listResources, syncKnowledgeBase } from "@/services/api";
-import { Connection, IndexStatus, KnowledgeBase, Organization, PendingOperation, Resource } from "@/types";
-import { useMutation, UseMutationResult, useQuery, useQueryClient, UseQueryResult } from "@tanstack/react-query";
+import { IndexStatus, PendingOperation, Resource } from "@/types";
 import { ColumnFiltersState, SortingState } from "@tanstack/react-table";
 import { Dispatch, SetStateAction, useCallback, useEffect, useMemo, useState } from "react";
+import { useResourceMutations } from "./file-explorer/useResourceMutations";
+import { useResourceQueries } from "./file-explorer/useResourceQueries";
 
 interface Props {
   isOnlineMode: boolean;
@@ -16,12 +16,9 @@ interface Props {
 
 export function useFileExplorer({ isOnlineMode, token }: Props) {
   const { logout }: { token: string | null, logout: () => void } = useAuth();
-  const queryClient = useQueryClient();
   const [connectionId, setConnectionId]: [string, Dispatch<SetStateAction<string>>] = useState<string>('');
   const [knowledgeBaseId, setKnowledgeBaseId]: [string, Dispatch<SetStateAction<string>>] = useState<string>('');
   const [pendingResources, setPendingResources] = useState<Map<string, PendingOperation>>(new Map());
-  const [searchTerm, setSearchTerm]: [string, Dispatch<SetStateAction<string>>] = useState<string>('');
-  const [debouncedSearchTerm, setDebouncedSearchTerm]: [string, Dispatch<SetStateAction<string>>] = useState<string>('');
   const [currentPath, setCurrentPath]: [string | undefined, Dispatch<SetStateAction<string | undefined>>] = useState<string | undefined>(undefined);
   const [pathHistory, setPathHistory]: [Resource[], Dispatch<SetStateAction<Resource[]>>] = useState<Resource[]>([]);
   const [pageCursors, setPageCursors]: [string[], Dispatch<SetStateAction<string[]>>] = useState<string[]>([]);
@@ -30,147 +27,53 @@ export function useFileExplorer({ isOnlineMode, token }: Props) {
   const [columnFilters, setColumnFilters]: [ColumnFiltersState, Dispatch<SetStateAction<ColumnFiltersState>>] = useState<ColumnFiltersState>([]);
   const [selectedResources, setSelectedResources] = useState<Resource[]>([]);
   const [isCreatingKb, setIsCreatingKb] = useState<boolean>(false);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>('');
 
-  useEffect(() => {
-    const handler: NodeJS.Timeout = setTimeout(() => setDebouncedSearchTerm(searchTerm), 300);
-    return () => clearTimeout(handler);
-  }, [searchTerm]);
-
-  const organizationQuery: UseQueryResult<Organization, Error> = useQuery<Organization, Error>({
-    queryKey: [QUERY_KEY_ORGANIZATION, isOnlineMode],
-    queryFn: () => getCurrentOrganization(token!),
-    enabled: !!token && isOnlineMode
+  const {
+    organizationQuery,
+    connectionsQuery,
+    kbsQuery,
+    resourcesQuery,
+    kbResourcesQuery,
+  } = useResourceQueries({
+    isOnlineMode,
+    token,
+    connectionId,
+    setConnectionId,
+    knowledgeBaseId,
+    setKnowledgeBaseId,
+    currentPath,
+    debouncedSearchTerm,
+    pageCursors,
+    currentPageIndex,
+    pathHistory,
+    pendingResources,
+    setPathHistory,
+    setCurrentPath,
+    setPageCursors,
+    setCurrentPageIndex,
   });
 
-  const connectionsQuery: UseQueryResult<Connection[], Error> = useQuery<Connection[], Error>({
-    queryKey: [QUERY_KEY_CONNECTIONS, isOnlineMode],
-    queryFn: () => listConnections(isOnlineMode, token!),
-    enabled: !!token,
+  const {
+    indexMutation,
+    deindexMutation,
+    createAndSyncKnowledgeBase,
+  } = useResourceMutations({
+    isOnlineMode,
+    token,
+    knowledgeBaseId,
+    setKnowledgeBaseId,
+    connectionId,
+    organizationQuery,
+    selectedResources,
+    setSelectedResources,
+    setPendingResources,
+    setCurrentPath,
+    setPathHistory,
+    setPageCursors,
+    setCurrentPageIndex,
+    setIsCreatingKb,
   });
-
-  useEffect((): void => {
-    setPathHistory([]);
-    setCurrentPath(undefined);
-    setPageCursors([]);
-    setCurrentPageIndex(0);
-    if (connectionsQuery.data && connectionsQuery.data.length > 0 && !connectionId) {
-      setConnectionId(connectionsQuery.data[0].connection_id);
-    }
-  }, [connectionsQuery.data, connectionId]);
-
-  useEffect((): void => {
-    setPathHistory([]);
-    setCurrentPath(undefined);
-    setPageCursors([]);
-    setCurrentPageIndex(0);
-  }, [debouncedSearchTerm]);
-
-  const kbsQuery: UseQueryResult<KnowledgeBase[], Error> = useQuery<KnowledgeBase[], Error>({
-    queryKey: [QUERY_KEY_KNOWLEDGE_BASES, isOnlineMode],
-    queryFn: () => listKnowledgeBases(isOnlineMode, token!),
-    enabled: !!token
-  });
-
-  useEffect((): void => {
-    if (kbsQuery.data && kbsQuery.data.length > 0 && !knowledgeBaseId) {
-      setKnowledgeBaseId(kbsQuery.data[0].knowledge_base_id);
-    }
-  }, [kbsQuery.data, knowledgeBaseId]);
-
-  const resourcesQuery: UseQueryResult<{ data: Resource[], next_cursor: string | null }, Error> = useQuery({
-    queryKey: [QUERY_KEY_RESOURCES, connectionId, currentPath, debouncedSearchTerm, isOnlineMode, currentPageIndex],
-    queryFn: () => listResources(isOnlineMode, token!, connectionId, currentPath, debouncedSearchTerm, pageCursors[currentPageIndex - 1]),
-    enabled: !!connectionId,
-  });
-
-  const kbQueryPath: string = useMemo(() => {
-    if (pathHistory.length === 0) {
-      return '/';
-    }
-    const lastResource: Resource = pathHistory[pathHistory.length - 1];
-    return `/${lastResource.inode_path.path}`;
-  }, [pathHistory]);
-  const isPollingEnabled: boolean = useMemo(() => pendingResources.size > 0, [pendingResources]);
-  const kbResourcesQuery: UseQueryResult<{ data: Resource[] }, Error> = useQuery({
-    queryKey: [QUERY_KEY_KB_RESOURCES, knowledgeBaseId, isOnlineMode, kbQueryPath],
-    queryFn: () => listKnowledgeBaseResources(isOnlineMode, token!, knowledgeBaseId, kbQueryPath),
-    enabled: !!knowledgeBaseId,
-    refetchInterval: isPollingEnabled ? REFRESH_MS : false,
-  });
-
-  useEffect(() => {
-    if (knowledgeBaseId) {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY_KB_RESOURCES, knowledgeBaseId] });
-    }
-  }, [knowledgeBaseId, queryClient]);
-
-  const indexMutation: UseMutationResult<void, Error, Resource, unknown> = useMutation({
-    mutationFn: async (resource: Resource): Promise<void> => {
-      if (!token || !knowledgeBaseId) throw new Error('Required info missing.');
-      await addKnowledgeBaseResource(isOnlineMode, token, knowledgeBaseId, resource);
-    },
-    onMutate: async (resource: Resource) => {
-      setPendingResources(prev => new Map(prev).set(resource.resource_id, OP_INDEXING));
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY_KB_RESOURCES, knowledgeBaseId] });
-    },
-  });
-
-  const deindexMutation: UseMutationResult<void, Error, Resource, unknown> = useMutation({
-    mutationFn: async (resource: Resource): Promise<void> => {
-      if (!token || !knowledgeBaseId) throw new Error('Required info missing.');
-      await deleteKnowledgeBaseResource(isOnlineMode, token, knowledgeBaseId, resource.inode_path.path);
-    },
-    onMutate: async (resource: Resource) => {
-      setPendingResources(prev => new Map(prev).set(resource.resource_id, OP_DEINDEXING));
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY_KB_RESOURCES, knowledgeBaseId] });
-    },
-  });
-
-  const createAndSyncKnowledgeBase = useCallback(async () => {
-    if (!token || !connectionId || !organizationQuery.data?.org_id || selectedResources.length === 0) {
-      console.error("Missing required information for creating and syncing knowledge base.");
-      return;
-    }
-    // Logic to remove files when a parent directory is included
-    const selectedDirs: Resource[] = selectedResources.filter((r: Resource) => r.inode_type === DIRECTORY);
-    const finalResourceIds = selectedResources
-      .filter((resource: Resource) => {
-        const parentDir: Resource | undefined = selectedDirs.find((dir: Resource) =>
-          resource.resource_id !== dir.resource_id &&
-          resource.inode_path.path.startsWith(dir.inode_path.path + '/')
-        );
-        return !parentDir;
-      })
-      .map((r: Resource) => r.resource_id);
-
-    setIsCreatingKb(true);
-    setPendingResources((prev: Map<string, string>) => {
-      const newPending: Map<string, string> = new Map(prev);
-      finalResourceIds.forEach((id: string) => newPending.set(id, OP_INDEXING));
-      return newPending;
-    });
-
-    try {
-      const newKb: KnowledgeBase = await createKnowledgeBase(token, connectionId, finalResourceIds);
-      await syncKnowledgeBase(token, newKb.knowledge_base_id, organizationQuery.data.org_id);
-      queryClient.setQueryData([QUERY_KEY_KNOWLEDGE_BASES, isOnlineMode], (oldData: KnowledgeBase[] | undefined) => (oldData ? [...oldData, newKb] : [newKb]));
-      setKnowledgeBaseId(newKb.knowledge_base_id);
-      setSelectedResources([]);
-      setCurrentPath(undefined);
-      setPathHistory([]);
-      setPageCursors([]);
-      setCurrentPageIndex(0);
-    } catch (error) {
-      console.error("Failed to create or sync knowledge base:", error);
-      setPendingResources(new Map());
-    } finally {
-      setIsCreatingKb(false);
-    }
-  }, [token, connectionId, organizationQuery.data?.org_id, selectedResources, queryClient, setKnowledgeBaseId, isOnlineMode]);
 
   useEffect(() => {
     if (kbResourcesQuery.data) {
@@ -190,7 +93,7 @@ export function useFileExplorer({ isOnlineMode, token }: Props) {
         return changed ? newPending : prev;
       });
     }
-  }, [kbResourcesQuery.data]);
+  }, [kbResourcesQuery.data, setPendingResources]);
 
   const processedResource: Resource[] = useMemo((): Resource[] => {
     if (!resourcesQuery.data) return [];
@@ -258,7 +161,7 @@ export function useFileExplorer({ isOnlineMode, token }: Props) {
     setCurrentPath(resource.resource_id);
     setPageCursors([]);
     setCurrentPageIndex(0);
-  }, [setPathHistory, setCurrentPath]);
+  }, [setPathHistory, setCurrentPath, setPageCursors, setCurrentPageIndex]);
 
   const handleBreadcrumbClick = useCallback((index: number): void => {
     const newPathHistory: Resource[] = pathHistory.slice(0, index + 1);
@@ -266,18 +169,18 @@ export function useFileExplorer({ isOnlineMode, token }: Props) {
     setCurrentPath(newPathHistory.length > 0 ? newPathHistory[newPathHistory.length - 1].resource_id : undefined);
     setPageCursors([]);
     setCurrentPageIndex(0);
-  }, [pathHistory, setPathHistory, setCurrentPath]);
+  }, [pathHistory, setPathHistory, setCurrentPath, setPageCursors, setCurrentPageIndex]);
 
   const goToNextPage = useCallback(() => {
     setPageCursors((prev: string[]) => [...prev, resourcesQuery.data!.next_cursor!]);
     setCurrentPageIndex((prev: number) => prev + 1);
-  }, [resourcesQuery.data]);
+  }, [resourcesQuery.data, setPageCursors, setCurrentPageIndex]);
 
   const goToPreviousPage = useCallback(() => {
     if (currentPageIndex > 0) {
       setCurrentPageIndex((prev: number) => prev - 1);
     }
-  }, [currentPageIndex]);
+  }, [currentPageIndex, setCurrentPageIndex]);
 
   return {
     logout,
@@ -286,6 +189,7 @@ export function useFileExplorer({ isOnlineMode, token }: Props) {
     knowledgeBaseId,
     setKnowledgeBaseId,
     pathHistory,
+    setPathHistory,
     pageCursors,
     currentPageIndex,
     goToNextPage,
@@ -302,13 +206,12 @@ export function useFileExplorer({ isOnlineMode, token }: Props) {
     handleFolderClick,
     handleBreadcrumbClick,
     pendingResources,
-    searchTerm,
-    setSearchTerm,
-    setPathHistory,
+    setDebouncedSearchTerm,
     setCurrentPath,
     currentPath,
     createAndSyncKnowledgeBase,
     selectedResources,
     isCreatingKb,
+    setIsCreatingKb,
   };
 }

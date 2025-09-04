@@ -39,6 +39,8 @@ interface FileExplorerProps {
 export function FileExplorer({ isOnlineMode, token }: FileExplorerProps): JSX.Element {
   const dictionary: Dictionary = useDictionary();
   const [showFilters, setShowFilters] = useState<boolean>(false);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+
   const {
     connectionId,
     setConnectionId,
@@ -61,13 +63,12 @@ export function FileExplorer({ isOnlineMode, token }: FileExplorerProps): JSX.El
     handleFolderClick,
     handleBreadcrumbClick,
     pendingResources,
-    searchTerm,
-    setSearchTerm,
     setCurrentPath,
     currentPath,
     createAndSyncKnowledgeBase,
     selectedResources,
     isCreatingKb,
+    setDebouncedSearchTerm
   } = useFileExplorer({ isOnlineMode, token });
 
   const columns: ColumnDef<Resource>[] = useMemo((): ColumnDef<Resource>[] => [
@@ -136,6 +137,11 @@ export function FileExplorer({ isOnlineMode, token }: FileExplorerProps): JSX.El
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
   });
+
+  useEffect(() => {
+    const handler: NodeJS.Timeout = setTimeout(() => setDebouncedSearchTerm(searchTerm), 300);
+    return () => clearTimeout(handler);
+  }, [searchTerm, setDebouncedSearchTerm]);
 
   useEffect(() => {
     if (searchTerm) {

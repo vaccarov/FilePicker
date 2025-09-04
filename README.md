@@ -72,9 +72,9 @@ If you encounter any issues or have questions, email victorvaccaro93@gmail.com o
 9. ~~Improve login/logout UI~~
 10. ~~Pagination~~
 
-
 ### Notes
 
-Pagination only works in online mode
-If we refresh the page while one of the resource is pending, it will show its previous state on reload since pendingResources will reset
-Changing language reset the app current state
+* Pagination only works in online mode
+* Cannot index resource once KB is created in online mode
+* If we refresh the page/change folder while one of the resource is pending, it will show its previous state on reload since pendingResources will reset
+* Changing language reset the app current state
