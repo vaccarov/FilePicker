@@ -1,3 +1,7 @@
+## Demo
+
+https://file-picker-eta.vercel.app/en
+
 ## Features
 
 This project provides a file picker interface for managing and indexing resources from various connections into knowledge bases. Key features include:

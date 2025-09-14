@@ -18,7 +18,6 @@ export function Pagination({ currentPageIndex, goToPreviousPage, goToNextPage, c
           <PaginationPrevious
             onClick={goToPreviousPage}
             aria-disabled={currentPageIndex === 0}
-            size='default'
             className={currentPageIndex === 0 ? "pointer-events-none text-muted-foreground" : "cursor-pointer"}
           />
         </PaginationItem>
@@ -29,7 +28,6 @@ export function Pagination({ currentPageIndex, goToPreviousPage, goToNextPage, c
           <PaginationNext
             onClick={goToNextPage}
             aria-disabled={!canGoToNextPage}
-            size='default'
             className={!canGoToNextPage ? "pointer-events-none text-muted-foreground" : "cursor-pointer"}
           />
         </PaginationItem>
